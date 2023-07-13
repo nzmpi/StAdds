@@ -7,7 +7,7 @@ import { DeployFunction } from "hardhat-deploy/types";
  *
  * @param hre HardhatRuntimeEnvironment object.
  */
-const StAds: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const StAdds: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   /*
     On localhost, the deployer account is the one that comes with Hardhat, which is already funded.
 
@@ -21,7 +21,7 @@ const StAds: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  await deploy("StAds", {
+  await deploy("StAdds", {
     from: deployer,
     // Contract constructor arguments
     //args: [deployer],
@@ -35,8 +35,8 @@ const StAds: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // const yourContract = await hre.ethers.getContract("YourContract", deployer);
 };
 
-export default StAds;
+export default StAdds;
 
 // Tags are useful if you have multiple deploy files and only want to run one of them.
 // e.g. yarn deploy --tags YourContract
-StAds.tags = ["StAds"];
+StAdds.tags = ["StAds"];
