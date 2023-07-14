@@ -11,6 +11,8 @@ import {
 } from "~~/hooks/scaffold-eth";
 import { CheckCircleIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
 import { CopyToClipboard } from "react-copy-to-clipboard";
+import { Spinner } from "~~/components/Spinner";
+import { useAccount } from 'wagmi';
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 
@@ -22,6 +24,9 @@ const Home: NextPage = () => {
   const [secret, setSecret] = useState("");
   const [stealthAddress, setStealthAddress] = useState("");
   const [publishedData, setPublishedData] = useState("");
+  const [publishedDataPoint, setPublishedDataPoint] = useState<any>();
+  const [publishedDataExists, setPublishedDataExists] = useState(true);
+  const {address: signer} = useAccount();
   const [test, setTest] = useState<any>();
 
   // Generator point
@@ -36,13 +41,25 @@ const Home: NextPage = () => {
     args: [addressTo],
   });
 
+  const { data: PublishedData } = useScaffoldContractRead({
+    contractName: "StAdds",
+    functionName: "getPublishedData",
+    args: [addressTo],
+  });
+
+  const { data: Timestamp } = useScaffoldContractRead({
+    contractName: "StAdds",
+    functionName: "getTimestamp",
+    args: [signer],
+  });
+
   const { 
     writeAsync: addPublishedData, 
     isLoading: addPublishedDataLoading 
   } = useScaffoldContractWrite({
     contractName: "StAdds",
     functionName: "addPublishedData",
-    args: [addressTo, PublicKey?.x, PublicKey?.x],
+    args: [addressTo, publishedDataPoint?.x || "", publishedDataPoint?.y || ""],
   });
 
   const getShortPublicKey = () => {
@@ -59,6 +76,20 @@ const Home: NextPage = () => {
     return publishedData.slice(0, 15) + "..." + publishedData.slice(-14);
   }
 
+  const checkPublishedData = () => {
+    if (!PublishedData) return true;
+    if (PublishedData.length === 0) return false;
+    
+    for (let i = 0; i < PublishedData.length; i++) {
+      if (
+        PublishedData[i].x === publishedDataPoint?.x &&
+        PublishedData[i].y === publishedDataPoint?.y
+      ) return true;
+    }
+
+    return false;
+  }
+
   useEffect(() => {
     if (!ethers.isAddress(addressTo) || !PublicKey) {
       setPublicKeyLong("");
@@ -68,7 +99,11 @@ const Home: NextPage = () => {
   }, [addressTo]);
 
   useEffect(() => {
-    if (secret === "" || !PublicKey ) return;
+    if (secret === "" || !PublicKey ) {
+      setStealthAddress("");
+      setPublishedData("");
+      return;
+    }
     const secretToNumber = ethers.keccak256(ethers.toUtf8Bytes(secret));
     // Remove "0x" prefix for elliptic library  
     const publicKeyXString = PublicKey.x.slice(2);
@@ -99,9 +134,14 @@ const Home: NextPage = () => {
 
     const publishedData_ = ecG.mul(secretToNumber);
     const publishedData_X = ethers.toBeHex(publishedData_.getX().toString());
-    const publishedData_Y = ethers.toBeHex(publishedData_.getY().toString()).slice(2);
-    setPublishedData(publishedData_X+publishedData_Y);
+    const publishedData_Y = ethers.toBeHex(publishedData_.getY().toString());
+    setPublishedData(publishedData_X + publishedData_Y.slice(2));
+    setPublishedDataPoint({x: publishedData_X, y: publishedData_Y});
   }, [secret]);
+
+  useEffect(() => {
+    setPublishedDataExists(checkPublishedData());
+  }, [publishedDataPoint, PublishedData]);
 
   return (
     <>
@@ -235,13 +275,29 @@ const Home: NextPage = () => {
           <div className="mt-5 flex flex-col items-center py-2">
             <button
               type="button"
-              disabled={
-                false
-              }              
+              disabled={publishedDataExists}              
               onClick={async () => {await addPublishedData();}}
-              className={"btn btn-primary font-black w-1/3 flex items-center"}
-            >
+              className={"btn btn-warning font-black w-1/3 flex items-center"}
+            >              
+            {addPublishedDataLoading && (
+            <>
+              <Spinner/>
+            </>
+            )}
+            {!addPublishedDataLoading && 
+             !publishedDataExists &&
+            (
+            <>
               save
+            </>
+            )}
+            {!addPublishedDataLoading && 
+             publishedDataExists &&
+            (
+            <>
+              exist
+            </>
+            )} 
             </button>
           </div>
           </div>            
@@ -254,7 +310,10 @@ const Home: NextPage = () => {
         </form>
       </div>
 
-
+      {publishedDataExists.toString()}
+      <div>
+        {PublishedData?.length}
+      </div>
 
       </div>
     </>

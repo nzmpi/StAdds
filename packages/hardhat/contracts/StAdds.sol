@@ -18,15 +18,19 @@ contract StAdds is Events {
     bytes32 x;
     bytes32 y;
   }
+  struct PublishedData {
+    bytes32 x;
+    bytes32 y;
+    address creator;
+  }
 
   address public owner;
   address public pendingOwner;
-  uint256 public dataFee = 0.001 ether;
-  uint256 fees;
+  uint256 public constant timeLock = 0.5 minutes; // 10 minutes;
 
   mapping (address => Point) publicKeys;
-  mapping (address => Point[]) publishedData;
-  mapping (address => uint256) funds;
+  mapping (address => PublishedData[]) publishedData;
+  mapping (address => uint256) timeStamps;
 
   constructor() payable {
     owner = msg.sender;
@@ -57,19 +61,30 @@ contract StAdds is Events {
     emit PublicKeyRemoved(msg.sender);
   }
 
-  // TODO: add timestamp
   function addPublishedData(
     address receiver,
     bytes32 publishedDataX, 
     bytes32 publishedDataY
   ) external {
     if (!isPubKeyProvided(receiver)) revert Errors.PublicKeyNotProvided();
-    publishedData[receiver].push(Point(publishedDataX, publishedDataY));
+    if (doesPublishedDataExist(
+      receiver, 
+      publishedDataX, 
+      publishedDataY
+    )) revert Errors.PublishedDataExists();
+    uint256 allowedTime = timeStamps[msg.sender];
+    if (allowedTime != 0 && allowedTime > block.timestamp) revert Errors.PublishedDataCooldown();
+    publishedData[receiver].push(PublishedData(
+      publishedDataX, 
+      publishedDataY,
+      msg.sender
+    ));
+    timeStamps[msg.sender] = block.timestamp + timeLock;
     emit NewPublishedData(msg.sender, receiver, publishedDataX, publishedDataY); 
   }
 
   function removePublishedData(uint256 index) external {
-    Point[] storage PDs = publishedData[msg.sender];
+    PublishedData[] storage PDs = publishedData[msg.sender];
     uint256 len = PDs.length;
     if (len == 0) revert Errors.WrongIndex();
     if (index >= len) revert Errors.WrongIndex();
@@ -78,26 +93,16 @@ contract StAdds is Events {
     emit PublishedDataRemoved(msg.sender, index);
   }
 
-  function getPublishedData(address _addr) external view returns (Point[] memory) {
+  function getPublishedData(address _addr) external view returns (PublishedData[] memory) {
     return publishedData[_addr];
   }
 
-  function withdrawFunds() external {
-    uint256 funds_ = funds[msg.sender];
-    if (funds_ == 0) revert Errors.NotEnoughMATIC();
-    delete funds[msg.sender];
-    (bool s,) = msg.sender.call{value: funds_}("");
-    if (!s) revert();
-    emit FundsWithdrawn(msg.sender, funds_);
-  }
-
   function withdraw() external payable OnlyOwner {
-    uint256 funds_ = fees;
-    if (funds_ == 0) revert Errors.NotEnoughMATIC();
-    delete fees;
-    (bool s,) = msg.sender.call{value: funds_}("");
+    uint256 funds = address(this).balance;
+    if (funds == 0) revert Errors.NotEnoughMATIC();
+    (bool s,) = msg.sender.call{value: address(this).balance}("");
     if (!s) revert();
-    emit FundsWithdrawn(msg.sender, funds_);
+    emit FundsWithdrawn(msg.sender, funds);
   }
 
   function proposeOwner(address _addr) external OnlyOwner {
@@ -116,8 +121,8 @@ contract StAdds is Events {
     return publicKeys[_addr];
   }
 
-  function getFunds(address _addr) external view returns (uint256) {
-    return funds[_addr];
+  function getTimestamp(address _addr) external view returns (uint256) {
+    return timeStamps[_addr];
   }
 
   function isPubKeyProvided(address _addr) internal view returns (bool) {
@@ -125,9 +130,30 @@ contract StAdds is Events {
     return (PBK.x != 0 && PBK.y != 0);
   }
 
+  function doesPublishedDataExist(
+    address receiver, 
+    bytes32 dataX,
+    bytes32 dataY
+  ) internal view returns (bool) {
+    PublishedData[] storage PDs = publishedData[receiver];
+    uint256 len = PDs.length;
+    if (len == 0) return false;
+    for (uint256 i; i < len;) {
+      if (
+        PDs[i].x == dataX &&
+        PDs[i].y == dataY
+      )
+        return true;
+      unchecked {++i;}
+    }
+
+    return false;
+  } 
+
   modifier OnlyOwner {
     if (msg.sender != owner) revert Errors.NotOwner();
     _;
   }
 
+  receive() external payable {}
 }

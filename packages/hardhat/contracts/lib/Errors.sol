@@ -8,4 +8,6 @@ library Errors {
   error PublicKeyNotProvided();
   error NotEnoughMATIC();
   error WrongIndex();
+  error PublishedDataExists();
+  error PublishedDataCooldown();
 }

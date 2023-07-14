@@ -5,7 +5,7 @@ const contracts = {
       name: "localhost",
       contracts: {
         StAdds: {
-          address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+          address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
           abi: [
             {
               inputs: [],
@@ -35,6 +35,16 @@ const contracts = {
             {
               inputs: [],
               name: "PublicKeyProvided",
+              type: "error",
+            },
+            {
+              inputs: [],
+              name: "PublishedDataCooldown",
+              type: "error",
+            },
+            {
+              inputs: [],
+              name: "PublishedDataExists",
               type: "error",
             },
             {
@@ -230,38 +240,6 @@ const contracts = {
               type: "function",
             },
             {
-              inputs: [],
-              name: "dataFee",
-              outputs: [
-                {
-                  internalType: "uint256",
-                  name: "",
-                  type: "uint256",
-                },
-              ],
-              stateMutability: "view",
-              type: "function",
-            },
-            {
-              inputs: [
-                {
-                  internalType: "address",
-                  name: "_addr",
-                  type: "address",
-                },
-              ],
-              name: "getFunds",
-              outputs: [
-                {
-                  internalType: "uint256",
-                  name: "",
-                  type: "uint256",
-                },
-              ],
-              stateMutability: "view",
-              type: "function",
-            },
-            {
               inputs: [
                 {
                   internalType: "address",
@@ -314,10 +292,34 @@ const contracts = {
                       name: "y",
                       type: "bytes32",
                     },
+                    {
+                      internalType: "address",
+                      name: "creator",
+                      type: "address",
+                    },
                   ],
-                  internalType: "struct StAdds.Point[]",
+                  internalType: "struct StAdds.PublishedData[]",
                   name: "",
                   type: "tuple[]",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "_addr",
+                  type: "address",
+                },
+              ],
+              name: "getTimestamp",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
                 },
               ],
               stateMutability: "view",
@@ -384,17 +386,27 @@ const contracts = {
             },
             {
               inputs: [],
+              name: "timeLock",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [],
               name: "withdraw",
               outputs: [],
               stateMutability: "payable",
               type: "function",
             },
             {
-              inputs: [],
-              name: "withdrawFunds",
-              outputs: [],
-              stateMutability: "nonpayable",
-              type: "function",
+              stateMutability: "payable",
+              type: "receive",
             },
           ],
         },
