@@ -26,7 +26,7 @@ contract StAdds is Events {
 
   address public owner;
   address public pendingOwner;
-  uint256 public constant timeLock = 0.5 minutes; // 10 minutes;
+  uint256 public constant timeLock = 10 minutes; // 10 minutes;
 
   mapping (address => Point) publicKeys;
   mapping (address => PublishedData[]) publishedData;

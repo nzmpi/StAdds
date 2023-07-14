@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import { MetaHeader } from "~~/components/MetaHeader";
-import { useState, useEffect } from "react";
+import React,{ useState, useEffect } from "react";
 import { ethers } from "ethers"; // v6
 import { AddressInput, Address } from "~~/components/scaffold-eth";
 import { 
@@ -13,6 +13,7 @@ import { CheckCircleIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outl
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { Spinner } from "~~/components/Spinner";
 import { useAccount } from 'wagmi';
+import Countdown from "react-countdown";
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 
@@ -26,6 +27,7 @@ const Home: NextPage = () => {
   const [publishedData, setPublishedData] = useState("");
   const [publishedDataPoint, setPublishedDataPoint] = useState<any>();
   const [publishedDataExists, setPublishedDataExists] = useState(true);
+  const [isOnCooldown, setIsOnCooldown] = useState(false);
   const {address: signer} = useAccount();
   const [test, setTest] = useState<any>();
 
@@ -143,8 +145,29 @@ const Home: NextPage = () => {
     setPublishedDataExists(checkPublishedData());
   }, [publishedDataPoint, PublishedData]);
 
+  useEffect(() => {
+    if (!Timestamp || Timestamp < Date.now()/1000) {
+      setIsOnCooldown(false);
+      return;
+    }
+    if (Timestamp > Date.now()/1000) setIsOnCooldown(true);
+  }, [Timestamp]);
+
+  const Completionist = () => {
+    setIsOnCooldown(false);
+    return <span></span>;
+  };
+  const CountdownWrapper = () => 
+  <Countdown date={Number(Timestamp || 0)*1000}>
+    <Completionist/>
+  </Countdown>;
+  const MemoCountdown = React.memo(CountdownWrapper);
+
   return (
     <>
+    {Number(Timestamp)}
+    {" "}
+    {Date.now()/1000}
       <MetaHeader/>
       <div className="flex items-center flex-col flex-grow pt-10">
       <div className={"mx-auto mt-7"}>
@@ -177,7 +200,6 @@ const Home: NextPage = () => {
           }
 
           {addressTo !== "" &&
-          PublicKey &&
           getShortPublicKey() !== "" &&
           (
           <div>
@@ -271,8 +293,10 @@ const Home: NextPage = () => {
             )}
           </div>
           </div>
-
-          <div className="mt-5 flex flex-col items-center py-2">
+          
+          {!isOnCooldown && 
+          (                  
+          <div className="mt-3 flex flex-col items-center py-2">
             <button
               type="button"
               disabled={publishedDataExists}              
@@ -295,22 +319,34 @@ const Home: NextPage = () => {
              publishedDataExists &&
             (
             <>
-              exist
+              exists
             </>
             )} 
             </button>
           </div>
+          )}
+
+          {isOnCooldown && 
+          (                  
+          <div className="flex flex-row items-center card-body p-5 pb-2 mx-8">
+            <span className="label-text font-bold">             
+              You are on cooldown: 
+            </span>
+            <MemoCountdown/>
+          </div>
+          )}
+          
           </div>            
           )}
           </div>
-          )}          
+          )}       
           
 
         </div>
         </form>
       </div>
 
-      {publishedDataExists.toString()}
+      {isOnCooldown.toString()}
       <div>
         {PublishedData?.length}
       </div>
