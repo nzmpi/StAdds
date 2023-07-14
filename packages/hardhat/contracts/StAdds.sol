@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
 /**
- * @title StealthNFT
+ * @title StealthNFT 
  * A contract that allows to create a stealth address and
  * mint NFTs to that address
  */
@@ -30,6 +30,10 @@ contract StAdds is Events {
 
   constructor() payable {
     owner = msg.sender;
+    publicKeys[0x5B38Da6a701c568545dCfcB03FcB875f56beddC4] = Point(
+      0x68cb0cffc92a03959e6fdc99a24f8c94143050099ca104863528c25e3c024f61,
+      0xa7049e09e669397f43d0fd63432b5b358f3d0caaf03b34acbcdc7f2cbe227db9
+    );
   }
 
   /**
@@ -53,16 +57,13 @@ contract StAdds is Events {
     emit PublicKeyRemoved(msg.sender);
   }
 
+  // TODO: add timestamp
   function addPublishedData(
     address receiver,
     bytes32 publishedDataX, 
     bytes32 publishedDataY
-  ) external payable {
-    if (msg.value != dataFee) revert Errors.NotEnoughMATIC();
+  ) external {
     if (!isPubKeyProvided(receiver)) revert Errors.PublicKeyNotProvided();
-    uint256 fee = msg.value/2;
-    fees = fees + fee; // gas savings
-    funds[receiver] += fee;
     publishedData[receiver].push(Point(publishedDataX, publishedDataY));
     emit NewPublishedData(msg.sender, receiver, publishedDataX, publishedDataY); 
   }
@@ -75,6 +76,10 @@ contract StAdds is Events {
     if (PDs[index].x == 0 && PDs[index].y == 0) revert Errors.WrongIndex();
     delete PDs[index];
     emit PublishedDataRemoved(msg.sender, index);
+  }
+
+  function getPublishedData(address _addr) external view returns (Point[] memory) {
+    return publishedData[_addr];
   }
 
   function withdrawFunds() external {

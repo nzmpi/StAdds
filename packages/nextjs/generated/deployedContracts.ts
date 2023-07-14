@@ -4,8 +4,8 @@ const contracts = {
       chainId: "31337",
       name: "localhost",
       contracts: {
-        StAds: {
-          address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        StAdds: {
+          address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
           abi: [
             {
               inputs: [],
@@ -226,7 +226,7 @@ const contracts = {
               ],
               name: "addPublishedData",
               outputs: [],
-              stateMutability: "payable",
+              stateMutability: "nonpayable",
               type: "function",
             },
             {
@@ -284,9 +284,40 @@ const contracts = {
                       type: "bytes32",
                     },
                   ],
-                  internalType: "struct StAds.Point",
+                  internalType: "struct StAdds.Point",
                   name: "",
                   type: "tuple",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "_addr",
+                  type: "address",
+                },
+              ],
+              name: "getPublishedData",
+              outputs: [
+                {
+                  components: [
+                    {
+                      internalType: "bytes32",
+                      name: "x",
+                      type: "bytes32",
+                    },
+                    {
+                      internalType: "bytes32",
+                      name: "y",
+                      type: "bytes32",
+                    },
+                  ],
+                  internalType: "struct StAdds.Point[]",
+                  name: "",
+                  type: "tuple[]",
                 },
               ],
               stateMutability: "view",

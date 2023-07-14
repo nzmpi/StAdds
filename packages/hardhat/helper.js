@@ -21,7 +21,6 @@ async function getPublicKey() {
 
   console.log("getPublicKey:");
   console.log("wallet = ", wallet.address);
-  //console.log("provider = ", provider);
   console.log("public key = ", wallet.publicKey);
   console.log("publicKeyX = ", publicKey.x);
   console.log("publicKeyY = ", publicKey.y);
