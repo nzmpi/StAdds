@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
  * @title StealthNFT 
  * A contract that allows to create a stealth address and
  * mint NFTs to that address
- */
+ */ 
 contract StAdds is Events {
   // Elliptic Curve point
   struct Point {

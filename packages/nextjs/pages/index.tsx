@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { NextPage } from "next";
 import { MetaHeader } from "~~/components/MetaHeader";
 import React,{ useState, useEffect } from "react";
@@ -5,7 +6,6 @@ import { ethers } from "ethers"; // v6
 import { AddressInput, Address } from "~~/components/scaffold-eth";
 import { 
   useScaffoldContractRead,
-  useDeployedContractInfo,
   useScaffoldContractWrite,
   useScaffoldEventSubscriber
 } from "~~/hooks/scaffold-eth";
@@ -28,8 +28,7 @@ const Home: NextPage = () => {
   const [publishedDataPoint, setPublishedDataPoint] = useState<any>();
   const [publishedDataExists, setPublishedDataExists] = useState(true);
   const [isOnCooldown, setIsOnCooldown] = useState(false);
-  const {address: signer} = useAccount();
-  const [test, setTest] = useState<any>();
+  const {address: signer, isConnected} = useAccount();
 
   // Generator point
   const ecG = ec.curve.point(
@@ -47,7 +46,7 @@ const Home: NextPage = () => {
     contractName: "StAdds",
     functionName: "getPublishedData",
     args: [addressTo],
-  });
+  }); 
 
   const { data: Timestamp } = useScaffoldContractRead({
     contractName: "StAdds",
@@ -64,13 +63,13 @@ const Home: NextPage = () => {
     args: [addressTo, publishedDataPoint?.x || "", publishedDataPoint?.y || ""],
   });
 
-  const getShortPublicKey = () => {
+  const getShortPublicKey = (pubKey: any) => {
     if (
-      !PublicKey || 
-      (PublicKey.x === ethers.ZeroHash &&
-       PublicKey.y === ethers.ZeroHash)
+      !pubKey || 
+      (pubKey.x === ethers.ZeroHash &&
+        pubKey.y === ethers.ZeroHash)
     ) return "";
-    return "0x04" + PublicKey.x.slice(2, 14) + "..." + PublicKey.y.slice(-14);
+    return "0x04" + pubKey.x.slice(2, 14) + "..." + pubKey.y.slice(-14);
   }
 
   const getShortPublishedData = () => {
@@ -165,9 +164,6 @@ const Home: NextPage = () => {
 
   return (
     <>
-    {Number(Timestamp)}
-    {" "}
-    {Date.now()/1000}
       <MetaHeader/>
       <div className="flex items-center flex-col flex-grow pt-10">
       <div className={"mx-auto mt-7"}>
@@ -200,7 +196,7 @@ const Home: NextPage = () => {
           }
 
           {addressTo !== "" &&
-          getShortPublicKey() !== "" &&
+          getShortPublicKey(PublicKey) !== "" &&
           (
           <div>
           <div className="form-control mb-3">
@@ -208,7 +204,7 @@ const Home: NextPage = () => {
             <span className="label-text font-bold">Their Public Key:</span>
           </label>
           <div className="flex flex-row mx-3">
-            {getShortPublicKey()}
+            {getShortPublicKey(PublicKey)}
             
             {publicKeyCopied ? (
             <CheckCircleIcon
@@ -295,6 +291,7 @@ const Home: NextPage = () => {
           </div>
           
           {!isOnCooldown && 
+           isConnected &&
           (                  
           <div className="mt-3 flex flex-col items-center py-2">
             <button
@@ -326,9 +323,9 @@ const Home: NextPage = () => {
           </div>
           )}
 
-          {isOnCooldown && 
+          {isOnCooldown &&
           (                  
-          <div className="flex flex-row items-center card-body p-5 pb-2 mx-8">
+          <div className="flex flex-row items-center card-body p-2 pb-2 mx-8">
             <span className="label-text font-bold">             
               You are on cooldown: 
             </span>
@@ -339,16 +336,26 @@ const Home: NextPage = () => {
           </div>            
           )}
           </div>
-          )}       
-          
+          )} 
+
+          {addressTo !== "" &&
+          getShortPublicKey(PublicKey) === "" &&
+          ethers.isAddress(addressTo) &&
+          (      
+            <div>
+            <div className="form-control mt-6 mb-3">
+            <span className="label-text text-md font-bold">We don't have their Public Key, but you can get one</span>
+            </div>
+            <div className="flex flex-row items-center justify-center">
+              <Link href="/your_stadds" passHref className="link text-md font-bold">
+                here
+              </Link>
+            </div>
+            </div>
+          )}
 
         </div>
         </form>
-      </div>
-
-      {isOnCooldown.toString()}
-      <div>
-        {PublishedData?.length}
       </div>
 
       </div>
