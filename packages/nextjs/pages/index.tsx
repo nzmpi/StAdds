@@ -177,14 +177,14 @@ const Home: NextPage = () => {
                 Receiver:
               </span>
             </label>
-              <AddressInput placeholder="Address" value={addressTo} 
-                onChange={value => {
-                  if (value === "") {
-                    setAddressTo("");
-                  } else   
-                    setAddressTo(value);
-                }}
-              />              
+            <AddressInput placeholder="Address" value={addressTo} 
+              onChange={value => {
+                if (value === "") {
+                  setAddressTo("");
+                } else   
+                  setAddressTo(value);
+              }}
+            />              
           </div>
           {!ethers.isAddress(addressTo) && addressTo !== "" && (
             <span className="ml-2 text-[0.95rem] text-red-500">

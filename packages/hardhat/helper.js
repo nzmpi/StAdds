@@ -10,7 +10,7 @@ const ec = new EC('secp256k1');
  */
 async function getPublicKey() {
   //const privateKey = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
-  const privateKey = '0x503f38a9c967ed597e47fe25643985f032b072db8075426a92110f82df48dfcb';
+  const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
   //const provider = ethers.getDefaultProvider('homestead');
   const wallet = new ethers.Wallet(privateKey);
 

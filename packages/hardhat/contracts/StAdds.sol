@@ -30,6 +30,8 @@ contract StAdds is Events {
 
   mapping (address => Point) publicKeys;
   mapping (address => PublishedData[]) publishedData;
+  // cheaper than iterating over big arrays
+  mapping (bytes => bool) isPublishedDataProvided;
   mapping (address => uint256) timeStamps;
 
   constructor() payable {
@@ -68,7 +70,6 @@ contract StAdds is Events {
   ) external {
     if (!isPubKeyProvided(receiver)) revert Errors.PublicKeyNotProvided();
     if (doesPublishedDataExist(
-      receiver, 
       publishedDataX, 
       publishedDataY
     )) revert Errors.PublishedDataExists();
@@ -88,8 +89,12 @@ contract StAdds is Events {
     uint256 len = PDs.length;
     if (len == 0) revert Errors.WrongIndex();
     if (index >= len) revert Errors.WrongIndex();
-    if (PDs[index].x == 0 && PDs[index].y == 0) revert Errors.WrongIndex();
+    bytes32 PDx = PDs[index].x;
+    bytes32 PDy = PDs[index].y;
+    if (PDx == 0 && PDy == 0) revert Errors.WrongIndex();
     delete PDs[index];
+    bytes memory data = abi.encodePacked(PDx, PDy);
+    delete isPublishedDataProvided[data];
     emit PublishedDataRemoved(msg.sender, index);
   }
 
@@ -130,24 +135,12 @@ contract StAdds is Events {
     return (PBK.x != 0 && PBK.y != 0);
   }
 
-  function doesPublishedDataExist(
-    address receiver, 
+  function doesPublishedDataExist( 
     bytes32 dataX,
     bytes32 dataY
   ) internal view returns (bool) {
-    PublishedData[] storage PDs = publishedData[receiver];
-    uint256 len = PDs.length;
-    if (len == 0) return false;
-    for (uint256 i; i < len;) {
-      if (
-        PDs[i].x == dataX &&
-        PDs[i].y == dataY
-      )
-        return true;
-      unchecked {++i;}
-    }
-
-    return false;
+    bytes memory data = abi.encodePacked(dataX, dataY);
+    return isPublishedDataProvided[data];
   } 
 
   modifier OnlyOwner {
