@@ -8,8 +8,8 @@ import {
 } from "~~/hooks/scaffold-eth";
 import { ethers } from "ethers"; // v6
 import { useAccount } from 'wagmi';
-import { AddressInput, Address } from "~~/components/scaffold-eth";
-import { CheckCircleIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
+import { AddressInput, Address, InputBase } from "~~/components/scaffold-eth";
+import { CheckCircleIcon, DocumentDuplicateIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { Spinner } from "~~/components/Spinner";
 import * as dotenv from "dotenv";
@@ -18,8 +18,9 @@ dotenv.config();
 const Your_StAdds: NextPage = () => {
   const [pubKeyInput, setPubKeyInput] = useState("Address");
   const [addressFrom, setAddressFrom] = useState("");
-  const [signerAddress, setSignerAddress] = useState("");
   const [publicKeyLong, setPublicKeyLong] = useState("");
+  const [publicKeyInput, setPublicKeyInput] = useState("");
+  const [gettingPublicKey, setGettingPublicKey] = useState(false);
   // avoiding Error: Hydration failed
   const [isConnected_, setIsConnected_] = useState(false);
   const [publicKeyCopied, setPublicKeyCopied] = useState(false);  
@@ -56,6 +57,14 @@ const Your_StAdds: NextPage = () => {
       `0x${publicKeyLong.slice(4, 68)}`, 
       `0x${publicKeyLong.slice(-64)}`
     ],});
+
+  const { 
+    writeAsync: removePublicKey, 
+    isLoading: removePublicKeyLoading 
+  } = useScaffoldContractWrite({
+    contractName: "StAdds",
+    functionName: "removePublicKey",
+  });
 
   const getShortPublicKey1Line = (pubKey: any) => {
     if (!pubKey) return "";
@@ -95,9 +104,10 @@ const Your_StAdds: NextPage = () => {
   }
   
   async function getPubKey() {
-    if (!ethers.isAddress(addressFrom)) {
+    if (!addressFrom) {
       return;
     }
+    setGettingPublicKey(true);
     for (let i = 0 ; i < networks.length; ++i) {
       const network = networks[i];
       const baseUrl = baseUrls.get(network);
@@ -148,20 +158,41 @@ const Your_StAdds: NextPage = () => {
       } else {
         setPublicKeyLong(PK);
         setErrorHash("");
-        return;
+        setGettingPublicKey(false);
+        break;
       }
     }
   }
 
+  const isPublicKeyZero = (pubKey: any) => {
+    if (
+      !pubKey || 
+      (pubKey.x === ethers.ZeroHash &&
+       pubKey.y === ethers.ZeroHash)
+    ) return true;
+    return false;
+  }
+
   useEffect(() => {
+    setErrorHash("");
+    setPublicKeyLong("");
     setIsConnected_(isConnected);
   }, [isConnected]);
 
   useEffect(() => {
     setErrorHash("");
     setPublicKeyLong("");
-    getPubKey();
+    if (addressFrom !== "")
+      getPubKey();
   }, [addressFrom]);
+
+  useEffect(() => {
+    setAddressFrom("");
+  }, [pubKeyInput]);
+
+  useEffect(() => {
+    
+  }, [addPublicKeyLoading, removePublicKeyLoading]);
 
   return (
     <>
@@ -170,7 +201,7 @@ const Your_StAdds: NextPage = () => {
         description="Get your StAdds here!"
       />
       {publicKeyLong || "s"}
-      {" " + errorHash + "PK: " + `0x$(publicKeyLong.slice(4, 68))`}
+      {" " + errorHash + "PK: " + ('0x0468cb0cffc92a03959e6fdc99a24f8c94143050099ca104863528c25e3c024f61a7049e09e669397f43d0fd63432b5b358f3d0caaf03b34acbcdc7f2cbe227db9').length}
       {isConnected_ &&
       (
       <div className="flex items-center flex-col flex-grow pt-10">
@@ -192,8 +223,36 @@ const Your_StAdds: NextPage = () => {
               onChange={value => {
                 if (value === "") {
                   setAddressFrom("");
-                } else   
+                } else if (ethers.isAddress(value)) {
+                  setAddressFrom(ethers.getAddress(value));
+                } else {
                   setAddressFrom(value);
+                }                  
+              }}
+            />  
+            {!ethers.isAddress(addressFrom) && addressFrom !== "" && (
+              <span className="mt-2 ml-2 text-[0.95rem] text-red-500">
+                Not an address!
+              </span>
+            )}            
+          </div>
+          )}
+
+          {pubKeyInput === "Public Key" &&
+          (          
+          <div className="form-control mb-3">
+            <label className="label">
+              <span className="label-text font-bold">
+                User's Public Key:
+              </span>
+            </label>
+            <InputBase placeholder="Public Key" value={pubKeyInput} 
+              onChange={value => {
+                if (value === "") {
+                  setPubKeyInput("");
+                } else {
+                  setPubKeyInput(value);
+                }                  
               }}
             />  
             {!ethers.isAddress(addressFrom) && addressFrom !== "" && (
@@ -213,17 +272,26 @@ const Your_StAdds: NextPage = () => {
               style={{ marginLeft: "auto" }}
             >
             <option value="Address">Address</option>
-            <option value="PK1line">Public Key</option>
+            <option value="Public Key">Public Key</option>
             </select>
           </div>          
           </div>
         </div>
 
+        {gettingPublicKey && (
+          <div className="flex justify-center mt-5">
+          <Spinner/>
+         </div>
+        )}
+
         {publicKeyLong !== "" &&
+        addressFrom !== signer &&
         (
         <div className="form-control mb-3 mt-5">
           <label className="label">
-            <span className="label-text font-bold">Their Public Key:</span>
+            <span className="label-text font-bold">
+              Their Public Key:
+            </span>
           </label>
           <div className="flex flex-row mx-3">
             {getShortPublicKey1Line(publicKeyLong)}
@@ -249,6 +317,45 @@ const Your_StAdds: NextPage = () => {
             </CopyToClipboard>
             )}
           </div>
+        </div>
+        )}
+
+        {publicKeyLong !== "" &&
+        addressFrom === signer &&
+        isPublicKeyZero(PublicKey) &&
+        (
+        <div className="form-control mb-3 mt-5">
+          <label className="label">
+            <span className="label-text font-bold">
+              Your Public Key:
+            </span>
+          </label>
+          <div className="flex flex-row mx-3">
+            {getShortPublicKey1Line(publicKeyLong)}
+            
+            {publicKeyCopied ? (
+            <CheckCircleIcon
+              className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+              aria-hidden="true"
+            />
+            ) : (
+            <CopyToClipboard
+              text={publicKeyLong}
+              onCopy={() => {
+                setPublicKeyCopied(true);
+              setTimeout(() => {
+                setPublicKeyCopied(false);
+              }, 800);
+              }}
+            >
+            <DocumentDuplicateIcon
+              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer mx-2"
+            />
+            </CopyToClipboard>
+            )}
+          </div>
+          {isPublicKeyZero(PublicKey) &&
+          (                  
           <div className="mt-3 flex flex-col items-center py-2">
             <button
               type="button"             
@@ -268,12 +375,13 @@ const Your_StAdds: NextPage = () => {
             )}
             </button>
           </div>
+          )}
         </div>
         )}
         
         {getFullPublicKey(PublicKey) === "" &&
         (
-        <div className="mt-10">          
+        <div className="mt-8">          
         <div>
         <span className="text-2xl">We don't have your Public Key</span>
         </div>
@@ -285,13 +393,20 @@ const Your_StAdds: NextPage = () => {
 
         {getFullPublicKey(PublicKey) !== "" &&
         (
-        <div>          
-        <span className="text-3xl">Your Public Key</span>
+        <div className="mt-8">          
+        <span className="text-2xl">We have your Public Key</span>
 
-        <div className="form-control mb-3">
-          <div className="flex flex-row mx-3">
+        <div className="form-control mb-2 mt-2">
+          <div className="flex flex-row">
+            <button
+              type="button"
+              onClick={async () => {await removePublicKey();}}
+            >
+              <TrashIcon className="h-4"/>
+            </button>
+            <div className="mx-2">
             {getShortPublicKey2Coord(PublicKey)}
-            
+            </div>
             {publicKeyCopied ? (
             <CheckCircleIcon
               className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
@@ -308,10 +423,11 @@ const Your_StAdds: NextPage = () => {
               }}
             >
             <DocumentDuplicateIcon
-              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer mx-2"
+              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
             />
             </CopyToClipboard>
             )}
+
           </div>
         </div>
         </div>
