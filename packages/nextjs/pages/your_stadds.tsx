@@ -255,10 +255,11 @@ const Your_StAdds: NextPage = () => {
 
   useEffect(() => {
     cleanEverything();
+    setUserAddress("");
   }, [signer]);
 
   useEffect(() => {
-  }, [addPublicKeyLoading, removePublicKeyLoading, addUserPublicKey, addUserPublicKeyLoading]);
+  }, [addPublicKeyLoading, removePublicKeyLoading, addUserPublicKeyLoading]);
 
   return (
     <>
@@ -530,12 +531,12 @@ const Your_StAdds: NextPage = () => {
         </div>
         )}
 
-        {true &&
+        {userPublicKey === "" &&
         (
         <label className="label mt-5">
           <span className="label-text font-bold">
             You can use{" "}
-            <Link href="/example-ui" passHref className="link">
+            <Link href="https://github.com/nzmpi/StAdds/blob/main/packages/nextjs/helper.js#L11" passHref className="link">
               this
             </Link>{" "}helper function to get your Public Key from your private key
           </span>
