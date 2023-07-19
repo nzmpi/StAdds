@@ -9,7 +9,7 @@ const ec = new EC('secp256k1');
  * from a private key 
  */
 async function getPublicKey() {
-  const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+  const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbfd5efcae784d7bf4f2ff81';
   const wallet = new ethers.Wallet(privateKey);
 
   const publicKey = {
@@ -17,8 +17,8 @@ async function getPublicKey() {
     y: ethers.utils.hexDataSlice(wallet.publicKey, 33)
   }
 
-  console.log("getPublicKey:");
-  console.log("wallet = ", wallet.address);
+  console.log("Info:");
+  console.log("address = ", wallet.address);
   console.log("public key = ", wallet.publicKey);
   console.log("publicKeyX = ", publicKey.x);
   console.log("publicKeyY = ", publicKey.y);

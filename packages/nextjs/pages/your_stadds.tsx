@@ -16,14 +16,17 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const Your_StAdds: NextPage = () => {
-  const [pubKeyInput, setPubKeyInput] = useState("Address");
-  const [addressFrom, setAddressFrom] = useState("");
+  const [userAddress, setUserAddress] = useState("");
   const [publicKeyLong, setPublicKeyLong] = useState("");
-  const [publicKeyInput, setPublicKeyInput] = useState("");
-  const [gettingPublicKey, setGettingPublicKey] = useState(false);
+  const [publicKeySource, setPublicKeySource] = useState("");
+  const [networkSource, setNetworkSource] = useState("");
+  const [userPublicKey, setUserPublicKey] = useState("");
   // avoiding Error: Hydration failed
   const [isConnected_, setIsConnected_] = useState(false);
-  const [publicKeyCopied, setPublicKeyCopied] = useState(false);  
+  const [publicKeyCopied, setPublicKeyCopied] = useState(false); 
+  const [gettingPublicKey, setGettingPublicKey] = useState(false); 
+  const [errorCustom, setErrorCustom] = useState("");
+  const [errorPK, setErrorPK] = useState("");
   const networks = ["mainnet", "goerli", "sepolia", "matic", "matic-mumbai", "optimism", "optimism-goerli", "arbitrum", "arbitrum-goerli"];
   const baseUrls = new Map([
     ["mainnet", "https://api.etherscan.io/api"],
@@ -36,7 +39,6 @@ const Your_StAdds: NextPage = () => {
     ["arbitrum", "https://api.arbiscan.io/api"],
     ["arbitrum-goerli", "https://api-goerli.arbiscan.io/api"],
   ]);
-  const [errorHash, setErrorHash] = useState("");
   const {address: signer, isConnected} = useAccount();
 
   const [test, setTest] = useState<any>();
@@ -44,7 +46,7 @@ const Your_StAdds: NextPage = () => {
   const { data: PublicKey } = useScaffoldContractRead({
     contractName: "StAdds",
     functionName: "getPublicKey",
-    args: [signer],
+    args: [userAddress],
   });
 
   const { 
@@ -66,18 +68,16 @@ const Your_StAdds: NextPage = () => {
     functionName: "removePublicKey",
   });
 
-  const getShortPublicKey1Line = (pubKey: any) => {
+  const getShortPublicKey = (pubKey: any) => {
     if (!pubKey) return "";
     return pubKey.slice(0, 16) + "..." + pubKey.slice(-14);
   }
 
-  const getShortPublicKey2Coord = (pubKey: any) => {
-    if (
-      !pubKey || 
-      (pubKey.x === ethers.ZeroHash &&
-        pubKey.y === ethers.ZeroHash)
-    ) return "";
-    return "0x04" + pubKey.x.slice(2, 14) + "..." + pubKey.y.slice(-14);
+  const cleanEverything = () => {
+    setErrorCustom("");
+    setPublicKeyLong("");
+    setPublicKeySource("");
+    setNetworkSource("");
   }
 
   const getFullPublicKey = (pubKey: any) => {
@@ -87,6 +87,18 @@ const Your_StAdds: NextPage = () => {
        pubKey.y === ethers.ZeroHash)
     ) return "";
     return pubKey.x.slice(0, 68) + pubKey.y.slice(-64);
+  }
+
+  const getNetworkName = (network: string) => {
+    if (network === "mainnet") return "Mainnet";
+    if (network === "goerli") return "Goerli";
+    if (network === "sepolia") return "Sepolia";
+    if (network === "matic") return "Polygon";
+    if (network === "matic-mumbai") return "Polygon Mumbai";
+    if (network === "optimism") return "Optimism";
+    if (network === "optimism-goerli") return "Optimism Goerli";
+    if (network === "arbitrum") return "Arbitrum";
+    if (network === "arbitrum-goerli") return "Arbitrum Goerli";
   }
 
   const getApiKey = (network: string) => {
@@ -102,26 +114,46 @@ const Your_StAdds: NextPage = () => {
       case "arbitrum-goerli": return process.env.NEXT_PUBLIC_ARBISCAN_API_KEY;
     }
   }
+
+  const getAddressFromPK = (PK: string) => {
+    return ethers.getAddress('0x' + ethers.keccak256('0x' + PK.slice(4)).slice(-40));
+  }
+
+  const getUserPublicKey = (PK: string) => {
+    if (PK.length === 132 && PK.slice(0,4) === "0x04") {
+      if (getAddressFromPK(PK) === signer) {
+        setUserPublicKey(PK);
+      } else {
+        setErrorPK("Not your Public Key!");
+      }      
+      return;
+    } else if (PK.length === 130) {
+      if (getAddressFromPK('0x04' + PK.slice(2)) === signer) {
+        setUserPublicKey('0x04' + PK.slice(2));
+      } else {
+        setErrorPK("Not your Public Key!");
+      }      
+      return;
+    } else {
+      setErrorPK("Not a Public Key!");
+    }
+  }
   
   async function getPubKey() {
-    if (!addressFrom) {
-      return;
-    }
-    setGettingPublicKey(true);
     for (let i = 0 ; i < networks.length; ++i) {
       const network = networks[i];
       const baseUrl = baseUrls.get(network);
       const SCAN_API_KEY = getApiKey(network);      
-      const url = `${baseUrl}?module=account&action=txlist&address=${addressFrom}&startblock=0&endblock=99999999&page=1&offset=1&sort=desc&apikey=${SCAN_API_KEY}`;
+      const url = `${baseUrl}?module=account&action=txlist&address=${userAddress}&startblock=0&endblock=99999999&page=1&offset=1&sort=desc&apikey=${SCAN_API_KEY}`;
       const res = await fetch(url);
       const jsonData = await res.json();
 
       let txHash;
       if (jsonData.message !== "OK") {
-        setErrorHash("No transactions found!");
+        setErrorCustom("No transactions found!");
         continue;
       } else {
-        setErrorHash("");
+        setErrorCustom("");
         txHash = jsonData.result[0].hash;
       }
 
@@ -146,22 +178,27 @@ const Your_StAdds: NextPage = () => {
       };
 
       const signature = tx?.signature;
+      if (!signature) {
+        continue;
+      }
       const serializedTx = ethers.Transaction.from(unsignedTx).unsignedSerialized;
       const PK = ethers.SigningKey.recoverPublicKey(
         ethers.keccak256(serializedTx),
-        signature || ""
+        signature
       );
       const address = ethers.getAddress('0x' + ethers.keccak256('0x' + PK.slice(4)).slice(-40));
-      if (address !== addressFrom) {
-        setErrorHash("Something wrong with the Public Key!");
+      if (address !== userAddress) {
+        setErrorCustom("Something wrong with the Public Key!");
         continue;
       } else {
         setPublicKeyLong(PK);
-        setErrorHash("");
-        setGettingPublicKey(false);
+        setNetworkSource(network);
+        setErrorCustom("");
+        setPublicKeySource("Infura");        
         break;
       }
     }
+    setGettingPublicKey(false);
   }
 
   const isPublicKeyZero = (pubKey: any) => {
@@ -173,25 +210,60 @@ const Your_StAdds: NextPage = () => {
     return false;
   }
 
+  const handleOnCheck = () => {
+    setUserAddress(signer ? signer : "");
+    setGettingPublicKey(true);
+  }
+
   useEffect(() => {
-    setErrorHash("");
-    setPublicKeyLong("");
+    cleanEverything();
+    setGettingPublicKey(true);
+    setTest("Test: uA: " + userAddress + " PKx: " + PublicKey?.x.toString() + " isZero: " + isPublicKeyZero(PublicKey));
+    if (userAddress === "") {
+      setGettingPublicKey(false);
+      return;
+    } else if (PublicKey && !isPublicKeyZero(PublicKey)) {        
+      setPublicKeyLong('0x04' + PublicKey.x.slice(2) + PublicKey.y.slice(2));
+      setPublicKeySource("Contract"); 
+      setGettingPublicKey(false);
+      return;
+    } else {
+      getPubKey();
+    }
+  }, [userAddress, PublicKey]);
+
+  useEffect(() => {
+    if (userPublicKey === "") return;
+
+    if (userPublicKey.length === 132 && userPublicKey.slice(0,4) === "0x04") {
+      if (getAddressFromPK(userPublicKey) === signer) {
+        setUserPublicKey(userPublicKey);
+      } else {
+        setErrorPK("Not your Public Key!");
+      }      
+      return;
+    } else if (userPublicKey.length === 130) {
+      if (getAddressFromPK('0x04' + userPublicKey.slice(2)) === signer) {
+        setUserPublicKey('0x04' + userPublicKey.slice(2));
+      } else {
+        setErrorPK("Not your Public Key!");
+      }      
+      return;
+    } else {
+      setErrorPK("Not a Public Key!");
+    }
+
+  }, [userPublicKey]);
+
+  useEffect(() => {
     setIsConnected_(isConnected);
   }, [isConnected]);
 
   useEffect(() => {
-    setErrorHash("");
-    setPublicKeyLong("");
-    if (addressFrom !== "")
-      getPubKey();
-  }, [addressFrom]);
+    cleanEverything();
+  }, [signer]);
 
   useEffect(() => {
-    setAddressFrom("");
-  }, [pubKeyInput]);
-
-  useEffect(() => {
-    
   }, [addPublicKeyLoading, removePublicKeyLoading]);
 
   return (
@@ -200,8 +272,19 @@ const Your_StAdds: NextPage = () => {
         title="Your StAdds"
         description="Get your StAdds here!"
       />
-      {publicKeyLong || "s"}
-      {" " + errorHash + "PK: " + ('0x0468cb0cffc92a03959e6fdc99a24f8c94143050099ca104863528c25e3c024f61a7049e09e669397f43d0fd63432b5b358f3d0caaf03b34acbcdc7f2cbe227db9').length}
+      <div>
+      {"publicKeyLong: " + publicKeyLong}
+      </div>
+      <div>
+      {" " + (test || "r")}
+      </div>
+      <div>
+      {"userAddress: " + userAddress}
+      </div>
+      <div>
+      {"Error: " + errorPK}
+      </div>
+
       {isConnected_ &&
       (
       <div className="flex items-center flex-col flex-grow pt-10">
@@ -209,154 +292,133 @@ const Your_StAdds: NextPage = () => {
         <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
         <div className="flex-column">
 
-        <div>          
-        <span className="text-2xl">Get Public Key</span>
-          {pubKeyInput === "Address" &&
-          (          
-          <div className="form-control mb-3">
-            <label className="label">
-              <span className="label-text font-bold">
-                User's address:
-              </span>
-            </label>
-            <AddressInput placeholder="Address" value={addressFrom} 
-              onChange={value => {
-                if (value === "") {
-                  setAddressFrom("");
-                } else if (ethers.isAddress(value)) {
-                  setAddressFrom(ethers.getAddress(value));
-                } else {
-                  setAddressFrom(value);
-                }                  
-              }}
-            />  
-            {!ethers.isAddress(addressFrom) && addressFrom !== "" && (
-              <span className="mt-2 ml-2 text-[0.95rem] text-red-500">
-                Not an address!
-              </span>
-            )}            
-          </div>
-          )}
-
-          {pubKeyInput === "Public Key" &&
-          (          
-          <div className="form-control mb-3">
-            <label className="label">
-              <span className="label-text font-bold">
-                User's Public Key:
-              </span>
-            </label>
-            <InputBase placeholder="Public Key" value={pubKeyInput} 
-              onChange={value => {
-                if (value === "") {
-                  setPubKeyInput("");
-                } else {
-                  setPubKeyInput(value);
-                }                  
-              }}
-            />  
-            {!ethers.isAddress(addressFrom) && addressFrom !== "" && (
-              <span className="mt-2 ml-2 text-[0.95rem] text-red-500">
-                Not an address!
-              </span>
-            )}            
-          </div>
-          )}
-
+        {userAddress === "" && 
+         publicKeyLong === "" &&
+         errorCustom === "" &&
+        (
+        <div className="mt-3">
           <div>
-          <div style={{ display: "flex" }}>          
-            <select
-              value={pubKeyInput}
-              onChange={(e) => setPubKeyInput(e.target.value)}
-              className="select select-bordered bg-primary-500 input-sm w-[120px] flex border-2 border-orange-400 focus:outline-none shadow"
-              style={{ marginLeft: "auto" }}
-            >
-            <option value="Address">Address</option>
-            <option value="Public Key">Public Key</option>
-            </select>
-          </div>          
+          <span className="text-2xl">
+            Check your Public Key
+          </span>
           </div>
-        </div>
-
-        {gettingPublicKey && (
-          <div className="flex justify-center mt-5">
-          <Spinner/>
-         </div>
-        )}
-
-        {publicKeyLong !== "" &&
-        addressFrom !== signer &&
-        (
-        <div className="form-control mb-3 mt-5">
-          <label className="label">
-            <span className="label-text font-bold">
-              Their Public Key:
-            </span>
-          </label>
-          <div className="flex flex-row mx-3">
-            {getShortPublicKey1Line(publicKeyLong)}
-            
-            {publicKeyCopied ? (
-            <CheckCircleIcon
-              className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
-              aria-hidden="true"
-            />
-            ) : (
-            <CopyToClipboard
-              text={publicKeyLong}
-              onCopy={() => {
-                setPublicKeyCopied(true);
-              setTimeout(() => {
-                setPublicKeyCopied(false);
-              }, 800);
-              }}
-            >
-            <DocumentDuplicateIcon
-              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer mx-2"
-            />
-            </CopyToClipboard>
-            )}
+          <div className="mt-4 flex justify-center"> 
+          <button
+            type="button"             
+            onClick={handleOnCheck}
+            className={"btn btn-warning font-black w-1/3 flex items-center"}
+          > 
+          {!gettingPublicKey &&
+          (
+          <>
+            check
+          </>
+          )}
+          {gettingPublicKey &&
+          (
+          <>
+            <Spinner/>
+          </>
+          )}
+          </button>
           </div>
         </div>
         )}
 
         {publicKeyLong !== "" &&
-        addressFrom === signer &&
-        isPublicKeyZero(PublicKey) &&
+         !gettingPublicKey &&
+         publicKeySource === "Contract" &&
         (
-        <div className="form-control mb-3 mt-5">
-          <label className="label">
-            <span className="label-text font-bold">
-              Your Public Key:
-            </span>
-          </label>
-          <div className="flex flex-row mx-3">
-            {getShortPublicKey1Line(publicKeyLong)}
-            
-            {publicKeyCopied ? (
-            <CheckCircleIcon
-              className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
-              aria-hidden="true"
-            />
-            ) : (
-            <CopyToClipboard
-              text={publicKeyLong}
-              onCopy={() => {
-                setPublicKeyCopied(true);
-              setTimeout(() => {
-                setPublicKeyCopied(false);
-              }, 800);
-              }}
-            >
-            <DocumentDuplicateIcon
-              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer mx-2"
-            />
-            </CopyToClipboard>
-            )}
+          <div className="mt-3">          
+          <span className="text-2xl">We have your Public Key</span>  
+          <div className="form-control mb-2 mt-2">
+            <div className="flex flex-row">
+              <button
+                type="button"
+                onClick={async () => {await removePublicKey();}}
+              >
+                <TrashIcon className="h-4"/>
+              </button>
+              <div className="mx-2">
+              {getShortPublicKey(publicKeyLong)}
+              </div>
+              {publicKeyCopied ? (
+              <CheckCircleIcon
+                className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+                aria-hidden="true"
+              />
+              ) : (
+              <CopyToClipboard
+                text={getFullPublicKey(PublicKey)}
+                onCopy={() => {
+                  setPublicKeyCopied(true);
+                setTimeout(() => {
+                  setPublicKeyCopied(false);
+                }, 800);
+                }}
+              >
+              <DocumentDuplicateIcon
+                className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+              />
+              </CopyToClipboard>
+              )}
+  
+            </div>
           </div>
-          {isPublicKeyZero(PublicKey) &&
-          (                  
-          <div className="mt-3 flex flex-col items-center py-2">
+          </div>
+        )}
+
+        {publicKeyLong !== "" &&
+         !gettingPublicKey &&
+         publicKeySource === "Infura" &&
+        (
+          <div className="mt-3">  
+          <div>        
+          <span className="text-2xl">
+            We don't have your Public Key
+          </span>
+          </div>
+          <div className="mt-2">  
+          <span className="text-1xl mx-3">
+            But we retrieved it from {getNetworkName(networkSource)}:
+          </span>
+          </div>
+          <div className="form-control mb-2 mt-2">
+            <div className="flex flex-row">
+              <div className="mx-2">
+              {getShortPublicKey(publicKeyLong)}
+              </div>
+              {publicKeyCopied ? (
+              <CheckCircleIcon
+                className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+                aria-hidden="true"
+              />
+              ) : (
+              <CopyToClipboard
+                text={getFullPublicKey(PublicKey)}
+                onCopy={() => {
+                  setPublicKeyCopied(true);
+                setTimeout(() => {
+                  setPublicKeyCopied(false);
+                }, 800);
+                }}
+              >
+              <DocumentDuplicateIcon
+                className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+              />
+              </CopyToClipboard>
+              )}
+  
+            </div>
+          </div>
+
+          <div className="mt-4">        
+          <span className="text-2xl">
+            You can add it to the contract
+          </span>
+          </div>
+          
+          <div className="mt-4 flex justify-center"> 
             <button
               type="button"             
               onClick={async () => {await addPublicKey();}}
@@ -370,65 +432,48 @@ const Your_StAdds: NextPage = () => {
             {!addPublicKeyLoading && 
             (
             <>
-              save
+              add
             </>
-            )}
+            )} 
             </button>
-          </div>
-          )}
-        </div>
-        )}
-        
-        {getFullPublicKey(PublicKey) === "" &&
-        (
-        <div className="mt-8">          
-        <div>
-        <span className="text-2xl">We don't have your Public Key</span>
-        </div>
-        <div>
-        <span className="text-1xl flex justify-center">Use the form above!</span>
-        </div>
-        </div>
-        )}
-
-        {getFullPublicKey(PublicKey) !== "" &&
-        (
-        <div className="mt-8">          
-        <span className="text-2xl">We have your Public Key</span>
-
-        <div className="form-control mb-2 mt-2">
-          <div className="flex flex-row">
-            <button
-              type="button"
-              onClick={async () => {await removePublicKey();}}
-            >
-              <TrashIcon className="h-4"/>
-            </button>
-            <div className="mx-2">
-            {getShortPublicKey2Coord(PublicKey)}
             </div>
-            {publicKeyCopied ? (
-            <CheckCircleIcon
-              className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
-              aria-hidden="true"
-            />
-            ) : (
-            <CopyToClipboard
-              text={getFullPublicKey(PublicKey)}
-              onCopy={() => {
-                setPublicKeyCopied(true);
-              setTimeout(() => {
-                setPublicKeyCopied(false);
-              }, 800);
-              }}
-            >
-            <DocumentDuplicateIcon
-              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
-            />
-            </CopyToClipboard>
-            )}
-
           </div>
+        )}
+
+        {publicKeyLong === "" &&
+         !gettingPublicKey &&
+         errorCustom === "No transactions found!" &&
+        (
+        <div>
+        <div className="form-control mb-3">
+        <label className="label">
+          <span className="label-text font-bold">
+            We don't have your Public Key and this address has no transactions on any of this chains:
+          </span>
+        </label>
+        {networks.map((arr) => (
+          <div className="flex justify-center">
+            {getNetworkName(arr)}
+          </div>
+        ))}
+        <label className="label mt-5">
+          <span className="label-text font-bold">
+            But you can add it yourself:
+          </span>
+        </label>
+
+        <InputBase placeholder="Public Key: 0x04..." value={userPublicKey} 
+          onChange={value => {
+            if (value === "") {
+              setUserPublicKey("");
+            } else {
+              setUserPublicKey(value);
+            }                  
+          }}
+        /> 
+
+        
+
         </div>
         </div>
         )}

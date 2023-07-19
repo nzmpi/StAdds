@@ -309,10 +309,6 @@ const Home: NextPage = () => {
     <>
       <MetaHeader/>
       {checkPublishedData().toString() || "s"}
-      {" " + publishedDataExists.toString() || "7"}
-      {" " + (PublishedData?.[0].y.slice(2)===publishedData.slice(66)).toString() || "5"}
-      {" " + PublishedData?.[0].y.slice(2) || "u"}
-      {" " + publishedData.slice(66) || "5"}
       <div className="flex items-center flex-col flex-grow pt-10">
       <div className={"mx-auto mt-7"}>
         <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
@@ -361,10 +357,10 @@ const Home: NextPage = () => {
           <div className="form-control mb-3">
           <label className="label">
             <span className="label-text font-bold">
-              We have their Public Key:
+              We have {addressTo === signer ? "your" : "their"} Public Key: 
             </span>
           </label>
-          <div className="flex flex-row mx-3">
+          <div className="flex flex-row mx-2">
             {getShortPublicKey()}
             
             {publicKeyCopied ? (
@@ -400,7 +396,7 @@ const Home: NextPage = () => {
           <div className="form-control mb-3">
           <label className="label">
             <span className="label-text font-bold">
-              We don't have their Public Key, but we retrieved it from {getNetworkName(networkSource)}:
+              We don't have {addressTo === signer ? "your" : "their"} Public Key, but we retrieved it from {getNetworkName(networkSource)}:
             </span>
           </label>
           <div className="flex flex-row mx-2">
@@ -439,7 +435,7 @@ const Home: NextPage = () => {
           <div className="form-control mb-3">
           <label className="label">
             <span className="label-text font-bold">
-              We don't have their Public Key and this address has no transactions on any of this chains:
+              We don't have {addressTo === signer ? "your" : "their"} Public Key and this address has no transactions on any of this chains:
             </span>
           </label>
           {networks.map((arr) => (
@@ -459,7 +455,7 @@ const Home: NextPage = () => {
           <div className="form-control mb-3">
           <label className="label">
             <span className="label-text font-bold">
-              There is something wrong with their Public Key!
+              There is something wrong with {addressTo === signer ? "your" : "their"} Public Key!
             </span>
           </label>
           </div>
@@ -490,7 +486,7 @@ const Home: NextPage = () => {
           <div className="form-control mb-3">
           <label className="label">
             <span className="label-text font-bold">
-              Their Stealth Address:
+              {addressTo === signer ? "Your" : "Their"} Stealth Address:
             </span>
           </label>
             <div className="mx-3">
@@ -501,7 +497,7 @@ const Home: NextPage = () => {
           <div className="form-control mb-3">
           <label className="label">
             <span className="label-text font-bold">
-              Their Published Data:
+              {addressTo === signer ? "Your" : "Their"} Published Data:
             </span>
           </label>
           <div className="flex flex-row mx-3">
