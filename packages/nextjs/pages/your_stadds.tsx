@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { NextPage } from "next";
 import React,{ useState, useEffect } from "react";
 import { MetaHeader } from "~~/components/MetaHeader";
@@ -61,6 +62,17 @@ const Your_StAdds: NextPage = () => {
     ],});
 
   const { 
+    writeAsync: addUserPublicKey, 
+    isLoading: addUserPublicKeyLoading 
+  } = useScaffoldContractWrite({
+    contractName: "StAdds",
+    functionName: "addPublicKey",
+    args: [
+      `0x${userPublicKey.slice(4, 68)}`, 
+      `0x${userPublicKey.slice(-64)}`
+    ],});
+
+  const { 
     writeAsync: removePublicKey, 
     isLoading: removePublicKeyLoading 
   } = useScaffoldContractWrite({
@@ -75,6 +87,8 @@ const Your_StAdds: NextPage = () => {
 
   const cleanEverything = () => {
     setErrorCustom("");
+    setErrorPK("");
+    setUserPublicKey("");
     setPublicKeyLong("");
     setPublicKeySource("");
     setNetworkSource("");
@@ -117,26 +131,6 @@ const Your_StAdds: NextPage = () => {
 
   const getAddressFromPK = (PK: string) => {
     return ethers.getAddress('0x' + ethers.keccak256('0x' + PK.slice(4)).slice(-40));
-  }
-
-  const getUserPublicKey = (PK: string) => {
-    if (PK.length === 132 && PK.slice(0,4) === "0x04") {
-      if (getAddressFromPK(PK) === signer) {
-        setUserPublicKey(PK);
-      } else {
-        setErrorPK("Not your Public Key!");
-      }      
-      return;
-    } else if (PK.length === 130) {
-      if (getAddressFromPK('0x04' + PK.slice(2)) === signer) {
-        setUserPublicKey('0x04' + PK.slice(2));
-      } else {
-        setErrorPK("Not your Public Key!");
-      }      
-      return;
-    } else {
-      setErrorPK("Not a Public Key!");
-    }
   }
   
   async function getPubKey() {
@@ -233,6 +227,7 @@ const Your_StAdds: NextPage = () => {
   }, [userAddress, PublicKey]);
 
   useEffect(() => {
+    setErrorPK("");
     if (userPublicKey === "") return;
 
     if (userPublicKey.length === 132 && userPublicKey.slice(0,4) === "0x04") {
@@ -252,7 +247,6 @@ const Your_StAdds: NextPage = () => {
     } else {
       setErrorPK("Not a Public Key!");
     }
-
   }, [userPublicKey]);
 
   useEffect(() => {
@@ -264,7 +258,7 @@ const Your_StAdds: NextPage = () => {
   }, [signer]);
 
   useEffect(() => {
-  }, [addPublicKeyLoading, removePublicKeyLoading]);
+  }, [addPublicKeyLoading, removePublicKeyLoading, addUserPublicKey, addUserPublicKeyLoading]);
 
   return (
     <>
@@ -282,6 +276,9 @@ const Your_StAdds: NextPage = () => {
       {"userAddress: " + userAddress}
       </div>
       <div>
+      {"userPublicKey: " + userPublicKey}
+      </div>
+      <div>
       {"Error: " + errorPK}
       </div>
 
@@ -292,11 +289,22 @@ const Your_StAdds: NextPage = () => {
         <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
         <div className="flex-column">
 
+        {gettingPublicKey && (
+          <div>
+          <span className="text-2xl">
+            Checking your Public Key...
+          </span>
+          <div className="flex justify-center mt-5">
+            <Spinner/>
+          </div>
+          </div>
+        )}
+
         {userAddress === "" && 
          publicKeyLong === "" &&
          errorCustom === "" &&
         (
-        <div className="mt-3">
+        <div className="mt-3 px-5">
           <div>
           <span className="text-2xl">
             Check your Public Key
@@ -436,7 +444,7 @@ const Your_StAdds: NextPage = () => {
             </>
             )} 
             </button>
-            </div>
+          </div>
           </div>
         )}
 
@@ -462,6 +470,7 @@ const Your_StAdds: NextPage = () => {
           </span>
         </label>
 
+        <div className="mt-3">
         <InputBase placeholder="Public Key: 0x04..." value={userPublicKey} 
           onChange={value => {
             if (value === "") {
@@ -470,8 +479,68 @@ const Your_StAdds: NextPage = () => {
               setUserPublicKey(value);
             }                  
           }}
-        /> 
+        />
+        </div>
 
+        {userPublicKey !== "" &&
+        errorPK === "" && 
+        (                
+        <div className="mt-4 flex justify-center"> 
+          <button
+            type="button"             
+            onClick={async () => {await addUserPublicKey();}}
+            className={"btn btn-warning font-black w-1/3 flex items-center"}
+          >              
+          {addUserPublicKeyLoading && (
+          <>
+            <Spinner/>
+          </>
+          )}
+          {!addUserPublicKeyLoading && 
+          (
+          <>
+            add
+          </>
+          )} 
+          </button>
+        </div>
+        )}
+
+        {userPublicKey !== "" &&
+         errorPK === "Not your Public Key!" && 
+        (     
+        <div className="flex justify-center">           
+        <label className="label mt-5">
+          <span className="label-text font-bold text-red-500">
+            Not your Public Key!
+          </span>
+        </label>
+        </div>
+        )}
+
+        {userPublicKey !== "" &&
+         errorPK === "Not a Public Key!" && 
+        (           
+        <div className="flex justify-center">     
+        <label className="label mt-5">
+          <span className="label-text font-bold text-red-500">
+            Not a Public Key!
+          </span>
+        </label>
+        </div>
+        )}
+
+        {true &&
+        (
+        <label className="label mt-5">
+          <span className="label-text font-bold">
+            You can use{" "}
+            <Link href="/example-ui" passHref className="link">
+              this
+            </Link>{" "}helper function to get your Public Key from your private key
+          </span>
+        </label>
+        )}
         
 
         </div>
