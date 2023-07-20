@@ -34,6 +34,8 @@ const Home: NextPage = () => {
   const [errorCustom, setErrorCustom] = useState("");
   const [gettingPublicKey, setGettingPublicKey] = useState(false);
   const {address: signer, isConnected} = useAccount();
+
+  const [test, setTest] = useState<any>();
   const networks = ["mainnet", "goerli", "sepolia", "matic", "matic-mumbai", "optimism", "optimism-goerli", "arbitrum", "arbitrum-goerli"];
   const baseUrls = new Map([
     ["mainnet", "https://api.etherscan.io/api"],
@@ -230,32 +232,31 @@ const Home: NextPage = () => {
     const publicKey = ec.curve.point(publicKeyX, publicKeyY);
 
     const sharedSecretPoint = publicKey.mul(secretToNumber.slice(2));
-    const sharedSecretX = ethers.toBeHex(sharedSecretPoint.getX().toString());
-    const sharedSecretY = ethers.toBeHex(sharedSecretPoint.getY().toString());
+    const sharedSecretX = '0x' + sharedSecretPoint.getX().toString('hex');
+    const sharedSecretY = '0x' + sharedSecretPoint.getY().toString('hex');
     const sharedSecretToNumber = ethers.solidityPackedKeccak256(
       ['uint256', 'uint256'],
       [ sharedSecretX, sharedSecretY ]
     );
-    const sharedSecretGPoint = ecG.mul(sharedSecretToNumber);
+    const sharedSecretGPoint = ecG.mul(sharedSecretToNumber.slice(2));
 
     const stealthPublicKey = publicKey.add(sharedSecretGPoint);
-    const stealthPublicX = ethers.toBeHex(stealthPublicKey.getX().toString());
-    const stealthPublicY = ethers.toBeHex(stealthPublicKey.getY().toString());
+    const stealthPublicX = '0x' + stealthPublicKey.getX().toString('hex');
+    const stealthPublicY = '0x' + stealthPublicKey.getY().toString('hex');
     const stealthPublicKeyToNumber = ethers.solidityPackedKeccak256(
       ['uint256', 'uint256'],
       [ stealthPublicX, stealthPublicY ]
     );
 
-    // Biggest number allowed for addresses
-    // https://ethereum.stackexchange.com/questions/10055/is-each-ethereum-address-shared-by-theoretically-2-96-private-keys
-    const modulo = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
-    const newStealthAddress = '0x' + ethers.toBeHex(BigInt(stealthPublicKeyToNumber) % (modulo)).slice(-40);
+    const newStealthAddress = ethers.getAddress('0x' + stealthPublicKeyToNumber.slice(-40));
     setStealthAddress(newStealthAddress);
 
-    const publishedData_ = ecG.mul(secretToNumber);
-    const publishedData_X = ethers.toBeHex(publishedData_.getX().toString());
-    const publishedData_Y = ethers.toBeHex(publishedData_.getY().toString());
+    const publishedData_ = ecG.mul(secretToNumber.slice(2));
+    const publishedData_X = '0x' + publishedData_.getX().toString('hex');
+    const publishedData_Y = '0x' + publishedData_.getY().toString('hex');
     setPublishedData(publishedData_X + publishedData_Y.slice(2));
+
+    setTest(ethers.keccak256(stealthPublicKeyToNumber));
   }
 
   useEffect(() => {
@@ -308,7 +309,14 @@ const Home: NextPage = () => {
   return (
     <>
       <MetaHeader/>
-      {checkPublishedData().toString() || "s"}
+      {"x: " + (ec.curve.point(publicKeyLong.slice(4,68), publicKeyLong.slice(68))).getY().toString('hex')}
+      <div>
+      {test && 
+      (
+      "test: " + test
+      )}      
+      </div>
+
       <div className="flex items-center flex-col flex-grow pt-10">
       <div className={"mx-auto mt-7"}>
         <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
@@ -575,7 +583,6 @@ const Home: NextPage = () => {
         </div>
         </form>
       </div>
-
       </div>
     </>
   );

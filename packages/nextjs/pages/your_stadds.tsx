@@ -22,6 +22,7 @@ const Your_StAdds: NextPage = () => {
   const [publicKeySource, setPublicKeySource] = useState("");
   const [networkSource, setNetworkSource] = useState("");
   const [userPublicKey, setUserPublicKey] = useState("");
+  const [publishedData, setPublishedData] = useState("");
   // avoiding Error: Hydration failed
   const [isConnected_, setIsConnected_] = useState(false);
   const [publicKeyCopied, setPublicKeyCopied] = useState(false); 
@@ -280,12 +281,13 @@ const Your_StAdds: NextPage = () => {
       {"userPublicKey: " + userPublicKey}
       </div>
       <div>
-      {"Error: " + errorPK}
+      {"Error: " + BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141')}
       </div>
 
       {isConnected_ &&
       (
-      <div className="flex items-center flex-col flex-grow pt-10">
+      <div className="flex sm:flex-row flex-col">
+      <div className="flex items-center flex-col flex-grow pt-8">
       <div className={"mx-auto mt-7"}>
         <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
         <div className="flex-column">
@@ -305,8 +307,8 @@ const Your_StAdds: NextPage = () => {
          publicKeyLong === "" &&
          errorCustom === "" &&
         (
-        <div className="mt-3 px-5">
-          <div>
+        <div className="mt-2 px-5">
+          <div className="flex justify-center">
           <span className="text-2xl">
             Check your Public Key
           </span>
@@ -338,7 +340,7 @@ const Your_StAdds: NextPage = () => {
          !gettingPublicKey &&
          publicKeySource === "Contract" &&
         (
-          <div className="mt-3">          
+          <div className="mt-2">          
           <span className="text-2xl">We have your Public Key</span>  
           <div className="form-control mb-2 mt-2">
             <div className="flex flex-row">
@@ -381,7 +383,7 @@ const Your_StAdds: NextPage = () => {
          !gettingPublicKey &&
          publicKeySource === "Infura" &&
         (
-          <div className="mt-3">  
+          <div className="mt-2">  
           <div>        
           <span className="text-2xl">
             We don't have your Public Key
@@ -551,6 +553,56 @@ const Your_StAdds: NextPage = () => {
         </div>
         </form>
       </div>
+      </div>
+
+      <div className="flex items-center flex-col flex-grow pt-8">
+      <div className={"mx-auto mt-7"}>
+      <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
+      <div className="flex-column">
+       
+      <div className="mt-2 px-4">
+        <span className="text-2xl">
+          Get your stealth private key
+        </span>
+
+        <div className="form-control mb-3">
+          <label className="label">
+            <span className="label-text font-bold">
+             Your Published Data
+            </span>
+          </label>
+          <InputBase placeholder="0x... or index" value={publishedData} 
+            onChange={value => {
+              if (value === "") {
+                setPublishedData("");
+              } else {
+                setPublishedData(value);
+              }                  
+            }}
+          />
+        </div>
+
+      </div>
+
+      </div>
+      </form>
+
+      <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5 mt-10"}>
+      <div className="flex-column">       
+      <div className="mt-2 px-4">
+        <span className="text-2xl">
+          All your Published Data
+        </span>
+      </div>
+
+      </div>
+      </form>
+      </div>
+      </div>
+
+        
+
+
       </div>
       )}
 
