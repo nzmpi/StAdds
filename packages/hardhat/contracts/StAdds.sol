@@ -98,10 +98,6 @@ contract StAdds is Events {
     emit PublishedDataRemoved(msg.sender, index);
   }
 
-  function getPublishedData(address _addr) external view returns (PublishedData[] memory) {
-    return publishedData[_addr];
-  }
-
   function withdraw() external payable OnlyOwner {
     uint256 funds = address(this).balance;
     if (funds == 0) revert Errors.NotEnoughMATIC();
@@ -124,6 +120,10 @@ contract StAdds is Events {
 
   function getPublicKey(address _addr) external view returns (Point memory) {
     return publicKeys[_addr];
+  }
+
+  function getPublishedData(address _addr) external view returns (PublishedData[] memory) {
+    return publishedData[_addr];
   }
 
   function getTimestamp(address _addr) external view returns (uint256) {

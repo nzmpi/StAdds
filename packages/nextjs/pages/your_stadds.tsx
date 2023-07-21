@@ -15,20 +15,29 @@ import { CopyToClipboard } from "react-copy-to-clipboard";
 import { Spinner } from "~~/components/Spinner";
 import * as dotenv from "dotenv";
 dotenv.config();
+const EC = require('elliptic').ec;
+const ec = new EC('secp256k1');
 
 const Your_StAdds: NextPage = () => {
+  const [stealthAddress, setStealthAddress] = useState("");
+  const [stealthPrivateKey, setStealthPrivateKey] = useState("");
   const [userAddress, setUserAddress] = useState("");
   const [publicKeyLong, setPublicKeyLong] = useState("");
   const [publicKeySource, setPublicKeySource] = useState("");
   const [networkSource, setNetworkSource] = useState("");
   const [userPublicKey, setUserPublicKey] = useState("");
+  const [userPrivateKey, setUserPrivateKey] = useState("");
   const [publishedData, setPublishedData] = useState("");
+  const [publishedDataCopied, setPublishedDataCopied] = useState<boolean[]>();
+  const [stealthPrivateKeyCopied, setStealthPrivateKeyCopied] = useState(false);const [indexToRemove, setIndexToRemove] = useState(-1);
   // avoiding Error: Hydration failed
   const [isConnected_, setIsConnected_] = useState(false);
   const [publicKeyCopied, setPublicKeyCopied] = useState(false); 
   const [gettingPublicKey, setGettingPublicKey] = useState(false); 
   const [errorCustom, setErrorCustom] = useState("");
   const [errorPK, setErrorPK] = useState("");
+  const [errorPD, setErrorPD] = useState("");
+  const [errorPrK, setErrorPrK] = useState("");
   const networks = ["mainnet", "goerli", "sepolia", "matic", "matic-mumbai", "optimism", "optimism-goerli", "arbitrum", "arbitrum-goerli"];
   const baseUrls = new Map([
     ["mainnet", "https://api.etherscan.io/api"],
@@ -49,6 +58,12 @@ const Your_StAdds: NextPage = () => {
     contractName: "StAdds",
     functionName: "getPublicKey",
     args: [userAddress],
+  });
+
+  const { data: PublishedData } = useScaffoldContractRead({
+    contractName: "StAdds",
+    functionName: "getPublishedData",
+    args: [signer],
   });
 
   const { 
@@ -81,9 +96,28 @@ const Your_StAdds: NextPage = () => {
     functionName: "removePublicKey",
   });
 
-  const getShortPublicKey = (pubKey: any) => {
-    if (!pubKey) return "";
-    return pubKey.slice(0, 16) + "..." + pubKey.slice(-14);
+  const { 
+    writeAsync: removePublishedData, 
+    isLoading: removePublishedDataLoading 
+  } = useScaffoldContractWrite({
+    contractName: "StAdds",
+    functionName: "removePublishedData",
+    args: [BigInt(indexToRemove)],
+  });
+
+  const getShortPublicKey = (PK: any) => {
+    if (!PK) return "";
+    return PK.slice(0, 16) + "..." + PK.slice(-14);
+  }
+
+  const getShortPublishedData = (PD: string) => {
+    if (PD === "") return "";
+    return PD.slice(0, 10) + "..." + PD.slice(-11);
+  }
+
+  const getShortPrivateKey = (PrK: string) => {
+    if (PrK === "") return "";
+    return PrK.slice(0, 10) + "..." + PrK.slice(-11);
   }
 
   const cleanEverything = () => {
@@ -95,13 +129,13 @@ const Your_StAdds: NextPage = () => {
     setNetworkSource("");
   }
 
-  const getFullPublicKey = (pubKey: any) => {
+  const getFullPublicKey = (PK: any) => {
     if (
-      !pubKey || 
-      (pubKey.x === ethers.ZeroHash &&
-       pubKey.y === ethers.ZeroHash)
+      !PK || 
+      (PK.x === ethers.ZeroHash &&
+       PK.y === ethers.ZeroHash)
     ) return "";
-    return pubKey.x.slice(0, 68) + pubKey.y.slice(-64);
+    return PK.x.slice(0, 68) + PK.y.slice(-64);
   }
 
   const getNetworkName = (network: string) => {
@@ -205,6 +239,33 @@ const Your_StAdds: NextPage = () => {
     return false;
   }
 
+  async function getStealthPrivateKey(privateKey: string) {  
+    // Biggest number allowed
+    // https://ethereum.stackexchange.com/questions/10055/is-each-ethereum-address-shared-by-theoretically-2-96-private-keys
+    const modulo = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
+  
+    // Remove "0x" prefix for elliptic library  
+    const publishedDataX = publishedData.slice(2,66);
+    const publishedDataY = publishedData.slice(66);
+    const publishedDataPoint = ec.curve.point(publishedDataX, publishedDataY);
+  
+    const sharedSecretPoint = publishedDataPoint.mul(privateKey.slice(2));
+    const sharedSecretX = '0x' + sharedSecretPoint.x.toString('hex');
+    const sharedSecretY = '0x' + sharedSecretPoint.y.toString('hex');
+    const sharedSecretToNumber = ethers.solidityPackedKeccak256(
+      ['uint256', 'uint256'],
+      [ sharedSecretX, sharedSecretY ]
+    );
+  
+    const sharedSecretBigInt = BigInt(sharedSecretToNumber);
+    const privateKeyBigInt = BigInt(privateKey);
+    const stealthPrivateKey = (privateKeyBigInt + sharedSecretBigInt) % modulo; // can overflow uint256
+    const stealthPrivateKeyHex = '0x' + stealthPrivateKey.toString(16);
+    setStealthPrivateKey(stealthPrivateKeyHex);
+    const wallet = new ethers.Wallet(stealthPrivateKeyHex);
+    setStealthAddress(wallet.address);
+  }
+
   const handleOnCheck = () => {
     setUserAddress(signer ? signer : "");
     setGettingPublicKey(true);
@@ -213,7 +274,6 @@ const Your_StAdds: NextPage = () => {
   useEffect(() => {
     cleanEverything();
     setGettingPublicKey(true);
-    setTest("Test: uA: " + userAddress + " PKx: " + PublicKey?.x.toString() + " isZero: " + isPublicKeyZero(PublicKey));
     if (userAddress === "") {
       setGettingPublicKey(false);
       return;
@@ -260,7 +320,84 @@ const Your_StAdds: NextPage = () => {
   }, [signer]);
 
   useEffect(() => {
-  }, [addPublicKeyLoading, removePublicKeyLoading, addUserPublicKeyLoading]);
+    if (!PublishedData) return;
+    if (PublishedData.length === 0) return;
+    let temp = [];
+    for (let i = 0; i < PublishedData.length; ++i) {
+      temp.push(false);
+    }
+    setPublishedDataCopied(temp);
+  }, [PublishedData]);
+
+  useEffect(() => {
+    setErrorPD("");
+    if (publishedData === "" || !PublishedData) return;
+    if (
+      !(Boolean(publishedData.match(/^0x[a-f0-9]+$/g)) ||
+        Boolean(publishedData.match(/^[a-f0-9]+$/g)) ||
+        Boolean(publishedData.match(/^[0-9]+$/g)))
+    ) {
+      setErrorPD("Something wrong with the Published Data!");
+      return;
+    }
+    if (Number(publishedData) < 1) {
+      setErrorPD("Something wrong with the Published Data!");
+      return;
+    }
+    if (Number(publishedData) <= PublishedData?.length) {
+      if (PublishedData[Number(publishedData)-1].creator === ethers.ZeroAddress) {
+        setErrorPD("Something wrong with the Published Data!");
+        return;
+      }
+      const temp = PublishedData[Number(publishedData)-1].x + PublishedData[Number(publishedData)-1].y.slice(2);
+      setPublishedData(temp);
+    } else {
+      if (publishedData.length === 130 && publishedData.slice(0,2) === "0x") {
+        return;
+      } else if (publishedData.length === 128 && publishedData.slice(0,2) !== "0x") {
+        setPublishedData('0x' + publishedData);
+      } else {
+        setErrorPD("Something wrong with the Published Data!");
+        return;
+      }
+    }
+  }, [publishedData]);
+
+  useEffect(() => {
+    setErrorPrK("");
+    if (userPrivateKey === "") return;
+    if (
+      !(Boolean(publishedData.match(/^0x[a-f0-9]+$/g)) ||
+        Boolean(publishedData.match(/^[a-f0-9]+$/g)))
+    ) {
+      setErrorPrK("Not a private key!");
+      return;
+    }
+    if (userPrivateKey.length === 66 && userPrivateKey.slice(0,2) === "0x") {
+      const wallet = new ethers.Wallet(userPrivateKey);
+      if (wallet.address !== signer) {
+        setErrorPrK("Not your private key!");
+        return;
+      } else {
+        getStealthPrivateKey(userPrivateKey);
+      }
+    } else 
+      if (userPrivateKey.length === 64 && userPrivateKey.slice(0,2) !== "0x") {
+      const wallet = new ethers.Wallet(userPrivateKey);
+      if (wallet.address !== signer) {
+        setErrorPrK("Not your private key!");
+        return;
+      } else {
+        setUserPrivateKey('0x' + userPrivateKey);
+        getStealthPrivateKey('0x' + userPrivateKey);
+      }     
+    } else {
+      setErrorPrK("Not a private key!");
+    }    
+  }, [userPrivateKey]);
+
+  useEffect(() => {
+  }, [addPublicKeyLoading, removePublicKeyLoading, addUserPublicKeyLoading, removePublishedDataLoading]);
 
   return (
     <>
@@ -275,13 +412,13 @@ const Your_StAdds: NextPage = () => {
       {" " + (test || "r")}
       </div>
       <div>
-      {"userAddress: " + userAddress}
+      {"stealthAddress: " + stealthAddress}
       </div>
       <div>
-      {"userPublicKey: " + userPublicKey}
+      {"stealthPrivateKey: " + stealthPrivateKey}
       </div>
       <div>
-      {"Error: " + BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141')}
+      {"Error: " + ('503f38a9c967ed597e47fe25643985f032b072db8075426a92110f82df48dfcb').length }
       </div>
 
       {isConnected_ &&
@@ -562,7 +699,7 @@ const Your_StAdds: NextPage = () => {
        
       <div className="mt-2 px-4">
         <span className="text-2xl">
-          Get your stealth private key
+          Get your Stealth Private Key
         </span>
 
         <div className="form-control mb-3">
@@ -582,12 +719,127 @@ const Your_StAdds: NextPage = () => {
           />
         </div>
 
+        {errorPD !== "" &&
+        (
+        <span className="ml-2 text-[0.95rem] text-red-500">
+          {errorPD}
+        </span>
+        )}
+
+        {errorPD === "" &&
+         publishedData !== "" &&
+        (
+        <div className="form-control mb-3">
+          <label className="label">
+            <span className="label-text font-bold">
+             Your Private Key
+            </span>
+          </label>
+          <InputBase placeholder="0x..." value={userPrivateKey} 
+            onChange={value => {
+              if (value === "") {
+                setUserPrivateKey("");
+              } else {
+                setUserPrivateKey(value);
+              }                  
+            }}
+          />
+
+          {userPrivateKey !== "" &&
+          errorPrK == "" &&
+          (
+          <div className="form-control mb-3 mt-3">
+          <label className="label">
+            <span className="label-text font-bold">
+              Your Stealth Address:
+            </span>
+          </label>
+          <div className="mx-3">
+            <Address address={stealthAddress}/>
+          </div>
+
+          <label className="label mt-3">
+            <span className="label-text font-bold">
+              Your Stealth Private Key:
+            </span>
+          </label>
+          <div className="mx-3">
+            <div className="flex flex-row">
+            {getShortPrivateKey(stealthPrivateKey)}
+
+            {stealthPrivateKeyCopied ? (
+            <CheckCircleIcon
+              className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+              aria-hidden="true"
+            />
+            ) : (
+            <CopyToClipboard
+              text={stealthPrivateKey}
+              onCopy={() => {
+                setStealthPrivateKeyCopied(true);
+              setTimeout(() => {
+                setStealthPrivateKeyCopied(false);
+              }, 800);
+              }}
+            >
+            <DocumentDuplicateIcon
+              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer mx-2"
+            />
+            </CopyToClipboard>
+            )}
+            </div>
+          </div>
+          </div>
+
+          
+          )}
+
+          {userPrivateKey === "" &&
+          (
+          <div>
+          <label className="label mt-2">
+          <span className="label-text font-bold">
+            To get your Stealth Private Key we need your private key.
+            If you don't trust this dApp you can:
+          </span>
+          </label>
+          
+          
+          <label className="label flex flex-col">
+          <span className="label-text font-bold">
+            1. Turn off your Internet (everything is off-chain)
+          </span>
+          </label>
+          <label className="label">
+          <span className="label-text font-bold">
+            2. Use{" "}
+            <Link href="https://github.com/nzmpi/StAdds/blob/main/packages/nextjs/helper.js#L11" passHref className="link">
+              this
+            </Link>{" "}helper function
+          </span>
+          </label>
+          </div>
+          )}
+
+          {errorPrK === "Not a private key!" &&
+          (
+          <span className="ml-2 text-[0.95rem] text-red-500 mt-3">
+           {errorPrK}
+          </span>
+          )}
+
+        </div>
+        )}
+
       </div>
 
       </div>
       </form>
-
-      <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5 mt-10"}>
+      
+      {PublishedData &&
+       PublishedData.length > 0 &&
+      (        
+      <form className={"bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5 mt-10"}>
       <div className="flex-column">       
       <div className="mt-2 px-4">
         <span className="text-2xl">
@@ -595,11 +847,68 @@ const Your_StAdds: NextPage = () => {
         </span>
       </div>
 
+      {PublishedData.slice().reverse().map((arr, index) => (
+      <div>
+        {arr.creator !== ethers.ZeroAddress &&
+        (
+        <div className="form-control mb-3 mt-3">
+          <div className="flex">
+            {PublishedData.length-index}.{"  "} From 
+            <div className="mx-2">
+              <Address address={arr.creator}/>
+            </div>            
+          </div>
+          <div className="flex justify-center mt-2">
+          
+          <button
+            type="button"
+            onClick={async () => {await removePublishedData();}}
+            onMouseEnter={() => {
+              setIndexToRemove(PublishedData.length-index-1);
+            }}
+          >
+            <TrashIcon className="h-4"/>
+          </button>
+
+          <div className="mx-2">
+          Published Data:           
+          </div>
+
+          {getShortPublishedData(arr.x + arr.y.slice(2))}
+
+          {publishedDataCopied?.[index] ? (
+            <CheckCircleIcon
+              className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+              aria-hidden="true"
+            />
+            ) : (
+            <CopyToClipboard
+              text={arr.x + arr.y.slice(2)}
+              onCopy={() => {
+                setPublishedDataCopied(prevState => prevState?.map((item, idx) => idx === index ? true : false));
+              setTimeout(() => {
+                setPublishedDataCopied(prevState => prevState?.map(() => false));
+              }, 800);
+              }}
+            >
+            <DocumentDuplicateIcon
+              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer mx-2"
+            />
+            </CopyToClipboard>
+          )}
+          </div>
+        </div>
+        )}
+      </div>
+      ))}
+
       </div>
       </form>
-      </div>
-      </div>
+      )}
 
+
+      </div>
+      </div>
         
 
 
