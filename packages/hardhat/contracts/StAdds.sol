@@ -26,7 +26,7 @@ contract StAdds is Events {
 
   address public owner;
   address public pendingOwner;
-  uint256 public constant timeLock = 10 minutes; // 10 minutes;
+  uint256 public constant timeLock = 10 minutes;
 
   mapping (address => Point) publicKeys;
   mapping (address => PublishedData[]) publishedData;
@@ -68,7 +68,6 @@ contract StAdds is Events {
     bytes32 publishedDataX, 
     bytes32 publishedDataY
   ) external {
-    if (!isPubKeyProvided(receiver)) revert Errors.PublicKeyNotProvided();
     if (doesPublishedDataExist(
       publishedDataX, 
       publishedDataY

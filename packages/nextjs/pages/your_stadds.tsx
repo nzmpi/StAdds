@@ -29,7 +29,8 @@ const Your_StAdds: NextPage = () => {
   const [userPrivateKey, setUserPrivateKey] = useState("");
   const [publishedData, setPublishedData] = useState("");
   const [publishedDataCopied, setPublishedDataCopied] = useState<boolean[]>();
-  const [stealthPrivateKeyCopied, setStealthPrivateKeyCopied] = useState(false);const [indexToRemove, setIndexToRemove] = useState(-1);
+  const [stealthPrivateKeyCopied, setStealthPrivateKeyCopied] = useState(false);
+  const [indexToRemove, setIndexToRemove] = useState(-1);
   // avoiding Error: Hydration failed
   const [isConnected_, setIsConnected_] = useState(false);
   const [publicKeyCopied, setPublicKeyCopied] = useState(false); 
@@ -166,6 +167,15 @@ const Your_StAdds: NextPage = () => {
 
   const getAddressFromPK = (PK: string) => {
     return ethers.getAddress('0x' + ethers.keccak256('0x' + PK.slice(4)).slice(-40));
+  }
+
+  const isPublishedDataEmpty = () => {
+    if (!PublishedData || PublishedData.length === 0) return;
+    for (let i = 0; i < PublishedData.length; ++i) {
+      if (PublishedData[i].creator !== ethers.ZeroAddress) return false;
+    }
+
+    return true;
   }
   
   async function getPubKey() {
@@ -405,21 +415,6 @@ const Your_StAdds: NextPage = () => {
         title="Your StAdds"
         description="Get your StAdds here!"
       />
-      <div>
-      {"publicKeyLong: " + publicKeyLong}
-      </div>
-      <div>
-      {" " + (test || "r")}
-      </div>
-      <div>
-      {"stealthAddress: " + stealthAddress}
-      </div>
-      <div>
-      {"stealthPrivateKey: " + stealthPrivateKey}
-      </div>
-      <div>
-      {"Error: " + ('503f38a9c967ed597e47fe25643985f032b072db8075426a92110f82df48dfcb').length }
-      </div>
 
       {isConnected_ &&
       (
@@ -813,7 +808,7 @@ const Your_StAdds: NextPage = () => {
           <label className="label">
           <span className="label-text font-bold">
             2. Use{" "}
-            <Link href="https://github.com/nzmpi/StAdds/blob/main/packages/nextjs/helper.js#L11" passHref className="link">
+            <Link href="https://github.com/nzmpi/StAdds/blob/main/packages/hardhat/helper.js#L11" passHref className="link">
               this
             </Link>{" "}helper function
           </span>
@@ -838,6 +833,7 @@ const Your_StAdds: NextPage = () => {
       
       {PublishedData &&
        PublishedData.length > 0 &&
+       !isPublishedDataEmpty() &&
       (        
       <form className={"bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5 mt-10"}>
       <div className="flex-column">       

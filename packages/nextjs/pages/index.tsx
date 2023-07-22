@@ -309,14 +309,6 @@ const Home: NextPage = () => {
   return (
     <>
       <MetaHeader/>
-      {"x: " + (ec.curve.point(publicKeyLong.slice(4,68), publicKeyLong.slice(68))).getY().toString('hex')}
-      <div>
-      {test && 
-      (
-      "test: " + test
-      )}      
-      </div>
-
       <div className="flex items-center flex-col flex-grow pt-10">
       <div className={"mx-auto mt-7"}>
         <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
