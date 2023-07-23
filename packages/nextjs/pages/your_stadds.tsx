@@ -52,8 +52,6 @@ const Your_StAdds: NextPage = () => {
     ["arbitrum-goerli", "https://api-goerli.arbiscan.io/api"],
   ]);
   const {address: signer, isConnected} = useAccount();
-
-  const [test, setTest] = useState<any>();
  
   const { data: PublicKey } = useScaffoldContractRead({
     contractName: "StAdds",

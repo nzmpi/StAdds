@@ -7,6 +7,7 @@ library Errors {
   error PublicKeyProvided();
   error PublicKeyNotProvided();
   error NotEnoughMATIC();
+  error DidntSend();
   error WrongIndex();
   error PublishedDataExists();
   error PublishedDataCooldown();

@@ -5,7 +5,6 @@ import "./lib/Errors.sol";
 import "./lib/Events.sol"; 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
 /**
  * @title StealthNFT 
@@ -95,6 +94,21 @@ contract StAdds is Events {
     bytes memory data = abi.encodePacked(PDx, PDy);
     delete isPublishedDataProvided[data];
     emit PublishedDataRemoved(msg.sender, index);
+  }
+
+  function sendMatic(address to) external payable {
+    if (msg.value == 0) revert Errors.NotEnoughMATIC();
+    (bool s,) = to.call{value: msg.value}("");
+    if (!s) revert Errors.DidntSend();
+  }
+
+  function sendERC20(address token, address to, uint256 amount) external payable {
+    bool s = IERC20(token).transferFrom(msg.sender, to, amount);
+    if (!s) revert Errors.DidntSend();
+  }
+
+  function sendERC721(address token, address to, uint256 tokenId) external payable {
+    IERC721(token).safeTransferFrom(msg.sender, to, tokenId);
   }
 
   function withdraw() external payable OnlyOwner {
