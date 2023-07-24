@@ -1,4 +1,5 @@
 import type { NextPage } from "next";
+import Link from "next/link";
 import { MetaHeader } from "~~/components/MetaHeader";
 import React,{ useState, useEffect } from "react";
 import { ethers } from "ethers"; // v6
@@ -8,7 +9,11 @@ import {
   useScaffoldContractWrite,
   useScaffoldEventSubscriber
 } from "~~/hooks/scaffold-eth";
-import { CheckCircleIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
+import { 
+  CheckCircleIcon, 
+  DocumentDuplicateIcon, 
+  InformationCircleIcon 
+} from "@heroicons/react/24/outline";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { Spinner } from "~~/components/Spinner";
 import { useAccount } from 'wagmi';
@@ -306,16 +311,19 @@ const Home: NextPage = () => {
     <>
       <MetaHeader/>
       <div className="flex items-center flex-col flex-grow pt-10">
-        <h2 className="text-[1.8rem] md:text-[2.5rem] text-center h-16 md:h-20">
-          Mint a unique Peep! <br/>
-          They will grow, get old and die!
-        </h2>
       <div className={"mx-auto mt-7"}>
-        <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
+        <form className={"w-[450px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
         <div className="flex-column">
-
-          <span className="text-3xl">Create a Stealth Address</span>
-
+        <div className="flex flex-row">
+          <span className="text-3xl">
+            Create a Stealth Address
+          </span>
+          <div className="tooltip tooltip-secondary mt-2 ml-2" data-tip={<Link href="https://github.com/nzmpi/StAdds/blob/main/packages/hardhat/helper.js#L10" passHref className="link">
+              this
+            </Link>}>
+          <InformationCircleIcon className="h-6 w-6"/>    
+          </div>      
+        </div>
           <div className="form-control mb-3">
             <label className="label">
               <span className="label-text font-bold">

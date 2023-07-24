@@ -676,7 +676,7 @@ const Your_StAdds: NextPage = () => {
         <label className="label mt-5">
           <span className="label-text font-bold">
             You can use{" "}
-            <Link href="https://github.com/nzmpi/StAdds/blob/main/packages/nextjs/helper.js#L11" passHref className="link">
+            <Link href="https://github.com/nzmpi/StAdds/blob/main/packages/hardhat/helper.js#L10" passHref className="link">
               this
             </Link>{" "}helper function to get your Public Key from your private key
           </span>
@@ -814,7 +814,7 @@ const Your_StAdds: NextPage = () => {
           <label className="label">
           <span className="label-text font-bold">
             2. Use{" "}
-            <Link href="https://github.com/nzmpi/StAdds/blob/main/packages/hardhat/helper.js#L11" passHref className="link">
+            <Link href="https://github.com/nzmpi/StAdds/blob/main/packages/hardhat/helper.js#L32" passHref className="link">
               this
             </Link>{" "}helper function
           </span>
