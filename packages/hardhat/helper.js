@@ -1,11 +1,11 @@
-const { ethers } = require('hardhat');
+const { ethers } = require('hardhat'); // v5
 const { BigNumber } = require('ethers');
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 
 /**
- * @dev Gets a public key and its coordinates
- * from a private key 
+ * @dev Gets your public key and its coordinates
+ * from your private key 
  */
 async function getPublicKey() {
   const privateKey = '0x...';
@@ -22,12 +22,11 @@ async function getPublicKey() {
   console.log("PublicKeyX = ", publicKey.x);
   console.log("PublicKeyY = ", publicKey.y);
 }
-
 getPublicKey();
 
 /**
- * @dev Gets a stealth private key
- * from a private key and publishedData
+ * @dev Gets your stealth private key
+ * from your private key and publishedData
  * more info: https://vitalik.ca/general/2023/01/20/stealth.html
  */
 async function getStealthPrivateKey() {
@@ -60,6 +59,5 @@ async function getStealthPrivateKey() {
   console.log("Stealth Address = ", wallet.address);
   console.log("Stealth Private Key = ", stealthPrivateKeyHex);
 }
-
 getStealthPrivateKey();
 
