@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { NextPage } from "next";
 import { MetaHeader } from "~~/components/MetaHeader";
 import React,{ useState, useEffect } from "react";
@@ -35,7 +34,6 @@ const Home: NextPage = () => {
   const [gettingPublicKey, setGettingPublicKey] = useState(false);
   const {address: signer, isConnected} = useAccount();
 
-  const [test, setTest] = useState<any>();
   const networks = ["mainnet", "goerli", "sepolia", "matic", "matic-mumbai", "optimism", "optimism-goerli", "arbitrum", "arbitrum-goerli"];
   const baseUrls = new Map([
     ["mainnet", "https://api.etherscan.io/api"],
@@ -255,8 +253,6 @@ const Home: NextPage = () => {
     const publishedData_X = '0x' + publishedData_.getX().toString('hex');
     const publishedData_Y = '0x' + publishedData_.getY().toString('hex');
     setPublishedData(publishedData_X + publishedData_Y.slice(2));
-
-    setTest(ethers.keccak256(stealthPublicKeyToNumber));
   }
 
   useEffect(() => {
@@ -310,6 +306,10 @@ const Home: NextPage = () => {
     <>
       <MetaHeader/>
       <div className="flex items-center flex-col flex-grow pt-10">
+        <h2 className="text-[1.8rem] md:text-[2.5rem] text-center h-16 md:h-20">
+          Mint a unique Peep! <br/>
+          They will grow, get old and die!
+        </h2>
       <div className={"mx-auto mt-7"}>
         <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
         <div className="flex-column">

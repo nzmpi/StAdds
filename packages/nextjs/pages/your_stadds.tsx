@@ -9,7 +9,7 @@ import {
 } from "~~/hooks/scaffold-eth";
 import { ethers } from "ethers"; // v6
 import { useAccount } from 'wagmi';
-import { AddressInput, Address, InputBase } from "~~/components/scaffold-eth";
+import { Address, InputBase } from "~~/components/scaffold-eth";
 import { CheckCircleIcon, DocumentDuplicateIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { Spinner } from "~~/components/Spinner";
@@ -51,7 +51,7 @@ const Your_StAdds: NextPage = () => {
     ["arbitrum", "https://api.arbiscan.io/api"],
     ["arbitrum-goerli", "https://api-goerli.arbiscan.io/api"],
   ]);
-  const {address: signer, isConnected} = useAccount();
+  const {address: signer, isConnected} = useAccount(); 
  
   const { data: PublicKey } = useScaffoldContractRead({
     contractName: "StAdds",
@@ -383,26 +383,34 @@ const Your_StAdds: NextPage = () => {
     }
     if (userPrivateKey.length === 66 && userPrivateKey.slice(0,2) === "0x") {
       const wallet = new ethers.Wallet(userPrivateKey);
-      if (wallet.address !== signer) {
-        setErrorPrK("Not your private key!");
-        return;
+      if (signer) {
+        if (wallet.address !== signer) {
+          setErrorPrK("Not your private key!");
+          return;
+        } else {
+          getStealthPrivateKey(userPrivateKey);
+        }
       } else {
         getStealthPrivateKey(userPrivateKey);
       }
-    } else 
-      if (userPrivateKey.length === 64 && userPrivateKey.slice(0,2) !== "0x") {
-      const wallet = new ethers.Wallet(userPrivateKey);
-      if (wallet.address !== signer) {
-        setErrorPrK("Not your private key!");
-        return;
+      } else if (
+        userPrivateKey.length === 64 && 
+        userPrivateKey.slice(0,2) !== "0x"
+        ) {
+        const wallet = new ethers.Wallet(userPrivateKey);
+        if (signer) {
+          if (wallet.address !== signer) {
+            setErrorPrK("Not your private key!");
+            return;
+          } else {
+            setUserPrivateKey('0x' + userPrivateKey);
+            getStealthPrivateKey('0x' + userPrivateKey);
+          } 
+        }          
       } else {
-        setUserPrivateKey('0x' + userPrivateKey);
-        getStealthPrivateKey('0x' + userPrivateKey);
-      }     
-    } else {
-      setErrorPrK("Not a private key!");
-    }    
-  }, [userPrivateKey]);
+        setErrorPrK("Not a private key!");
+      }    
+  }, [userPrivateKey, publishedData]);
 
   useEffect(() => {
   }, [addPublicKeyLoading, removePublicKeyLoading, addUserPublicKeyLoading, removePublishedDataLoading]);
@@ -413,10 +421,10 @@ const Your_StAdds: NextPage = () => {
         title="Your StAdds"
         description="Get your StAdds here!"
       />
-
+      
+      <div className="flex sm:flex-row flex-col">
       {isConnected_ &&
       (
-      <div className="flex sm:flex-row flex-col">
       <div className="flex items-center flex-col flex-grow pt-8">
       <div className={"mx-auto mt-7"}>
         <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
@@ -684,7 +692,7 @@ const Your_StAdds: NextPage = () => {
         </form>
       </div>
       </div>
-
+      )}
       <div className="flex items-center flex-col flex-grow pt-8">
       <div className={"mx-auto mt-7"}>
       <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
@@ -903,18 +911,7 @@ const Your_StAdds: NextPage = () => {
 
       </div>
       </div>
-        
-
-
       </div>
-      )}
-
-      {!isConnected_ &&
-      ( 
-        <div className="flex items-center flex-col flex-grow pt-5 mt-40">
-          <h2 className="text-[1.8rem] md:text-[2.5rem] text-center h-16 md:h-20">You need to connect your wallet!</h2>
-        </div>
-      )}
 
     </>
   );

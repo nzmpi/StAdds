@@ -14,6 +14,11 @@ const contracts = {
             },
             {
               inputs: [],
+              name: "DidntSend",
+              type: "error",
+            },
+            {
+              inputs: [],
               name: "NotEnoughMATIC",
               type: "error",
             },
@@ -382,6 +387,65 @@ const contracts = {
               name: "removePublishedData",
               outputs: [],
               stateMutability: "nonpayable",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "token",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "to",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "amount",
+                  type: "uint256",
+                },
+              ],
+              name: "sendERC20",
+              outputs: [],
+              stateMutability: "payable",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "token",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "to",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "tokenId",
+                  type: "uint256",
+                },
+              ],
+              name: "sendERC721",
+              outputs: [],
+              stateMutability: "payable",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
+                  name: "to",
+                  type: "address",
+                },
+              ],
+              name: "sendMatic",
+              outputs: [],
+              stateMutability: "payable",
               type: "function",
             },
             {

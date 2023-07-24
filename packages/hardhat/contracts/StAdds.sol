@@ -3,15 +3,16 @@ pragma solidity 0.8.19;
 
 import "./lib/Errors.sol";
 import "./lib/Events.sol"; 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-/**
- * @title StealthNFT 
- * A contract that allows to create a stealth address and
- * mint NFTs to that address
+/**@title StAdds
+ * A contract that keeps track of published data
  */ 
 contract StAdds is Events {
+  // users can add Published Data every 10 minutes
+  uint256 public constant timeLock = 10 minutes;
+  address public owner;
+  address public pendingOwner;
+
   // Elliptic Curve point
   struct Point {
     bytes32 x;
@@ -23,10 +24,6 @@ contract StAdds is Events {
     address creator;
   }
 
-  address public owner;
-  address public pendingOwner;
-  uint256 public constant timeLock = 10 minutes;
-
   mapping (address => Point) publicKeys;
   mapping (address => PublishedData[]) publishedData;
   // cheaper than iterating over big arrays
@@ -35,14 +32,10 @@ contract StAdds is Events {
 
   constructor() payable {
     owner = msg.sender;
-    publicKeys[0x5B38Da6a701c568545dCfcB03FcB875f56beddC4] = Point(
-      0x68cb0cffc92a03959e6fdc99a24f8c94143050099ca104863528c25e3c024f61,
-      0xa7049e09e669397f43d0fd63432b5b358f3d0caaf03b34acbcdc7f2cbe227db9
-    );
   }
 
   /**
-   * @dev Only signer can provide their public key
+   * @dev Only sender can provide their public key
    * @param publicKeyX - x coordinate of the public key
    * @param publicKeyY - y coordinate of the public key
    */
@@ -50,18 +43,28 @@ contract StAdds is Events {
     if (isPubKeyProvided(msg.sender)) revert Errors.PublicKeyProvided();
     bytes memory publicKey = abi.encodePacked(publicKeyX, publicKeyY);
     // 0x00FF... is a mask to get the address from the hashed public key
-    bool isSigner = (uint256(keccak256(publicKey)) & 0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF) == uint256(uint160(msg.sender));
-    if (!isSigner) revert Errors.NotSinger();
+    bool isSender = (uint256(keccak256(publicKey)) & 0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF) == uint256(uint160(msg.sender));
+    if (!isSender) revert Errors.NotSender();
     publicKeys[msg.sender] = Point(publicKeyX, publicKeyY);
     emit NewPublicKey(msg.sender, publicKeyX, publicKeyY);
   }
 
+  /**
+   * @dev Remove sender's public key
+   */
   function removePublicKey() external {
     if (!isPubKeyProvided(msg.sender)) revert Errors.PublicKeyNotProvided();
     delete publicKeys[msg.sender];
     emit PublicKeyRemoved(msg.sender);
   }
 
+  /**
+   * @dev Add published data
+   * @param receiver - address of the receiver
+   * @param publishedDataX - x coordinate of the published data
+   * @param publishedDataY - y coordinate of the published data
+   * @notice this creates a link between the sender and the receiver
+   */
   function addPublishedData(
     address receiver,
     bytes32 publishedDataX, 
@@ -82,11 +85,15 @@ contract StAdds is Events {
     emit NewPublishedData(msg.sender, receiver, publishedDataX, publishedDataY); 
   }
 
+  /**
+   * @dev Remove published data
+   * @param index - index of the published data
+   * in the publishedData mapping
+   */
   function removePublishedData(uint256 index) external {
     PublishedData[] storage PDs = publishedData[msg.sender];
     uint256 len = PDs.length;
-    if (len == 0) revert Errors.WrongIndex();
-    if (index >= len) revert Errors.WrongIndex();
+    if (len == 0 || index >= len) revert Errors.WrongIndex();
     bytes32 PDx = PDs[index].x;
     bytes32 PDy = PDs[index].y;
     if (PDx == 0 && PDy == 0) revert Errors.WrongIndex();
@@ -96,49 +103,43 @@ contract StAdds is Events {
     emit PublishedDataRemoved(msg.sender, index);
   }
 
-  function sendMatic(address to) external payable {
-    if (msg.value == 0) revert Errors.NotEnoughMATIC();
-    (bool s,) = to.call{value: msg.value}("");
-    if (!s) revert Errors.DidntSend();
-  }
-
-  function sendERC20(address token, address to, uint256 amount) external payable {
-    bool s = IERC20(token).transferFrom(msg.sender, to, amount);
-    if (!s) revert Errors.DidntSend();
-  }
-
-  function sendERC721(address token, address to, uint256 tokenId) external payable {
-    IERC721(token).safeTransferFrom(msg.sender, to, tokenId);
-  }
-
   function withdraw() external payable OnlyOwner {
     uint256 funds = address(this).balance;
     if (funds == 0) revert Errors.NotEnoughMATIC();
-    (bool s,) = msg.sender.call{value: address(this).balance}("");
+    (bool s,) = msg.sender.call{value: funds}("");
     if (!s) revert();
     emit FundsWithdrawn(msg.sender, funds);
   }
 
-  function proposeOwner(address _addr) external OnlyOwner {
+  function proposeOwner(address _addr) external payable OnlyOwner {
     pendingOwner = _addr;
     emit NewOwnerProposed(msg.sender, _addr);
   }
 
-  function acceptOwnership() external {
+  function acceptOwnership() external payable {
     if (pendingOwner != msg.sender) revert Errors.NotOwner();
     owner = msg.sender;
     delete pendingOwner;
     emit OwnershipAccepted(msg.sender);
   }
 
+  /**
+   * @dev returns the public key of _addr
+   */
   function getPublicKey(address _addr) external view returns (Point memory) {
     return publicKeys[_addr];
   }
 
+  /**
+   * @dev returns all published data of _addr
+   */
   function getPublishedData(address _addr) external view returns (PublishedData[] memory) {
     return publishedData[_addr];
   }
 
+  /**
+   * @dev returns the timestamp of _addr
+   */
   function getTimestamp(address _addr) external view returns (uint256) {
     return timeStamps[_addr];
   }

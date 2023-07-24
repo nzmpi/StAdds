@@ -97,15 +97,7 @@ export const EtherInput = ({ value, name, placeholder, onChange }: CommonInputPr
       placeholder={placeholder}
       onChange={handleChangeNumber}
       prefix={<span className="pl-4 -mr-2 text-accent self-center">{usdMode ? "$" : "Ξ"}</span>}
-      suffix={
-        <button
-          className={`btn btn-primary h-[2.2rem] min-h-[2.2rem] ${nativeCurrencyPrice > 0 ? "" : "hidden"}`}
-          onClick={toggleMode}
-          disabled={!usdMode && !nativeCurrencyPrice}
-        >
-          <ArrowsRightLeftIcon className="h-3 w-3 cursor-pointer" aria-hidden="true" />
-        </button>
-      }
+      
     />
   );
 };
