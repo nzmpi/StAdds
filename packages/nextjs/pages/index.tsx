@@ -16,7 +16,6 @@ import { CopyToClipboard } from "react-copy-to-clipboard";
 import { Spinner } from "~~/components/Spinner";
 import { useAccount } from 'wagmi';
 import Countdown from "react-countdown";
-import { toast } from "react-hot-toast";
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 

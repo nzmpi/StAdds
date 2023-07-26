@@ -5,12 +5,18 @@ import { MetaHeader } from "~~/components/MetaHeader";
 import { 
   useScaffoldContractRead,
   useScaffoldContractWrite,
-  saveBurnerSK
+  saveBurnerSK,
+  loadBurnerSK
 } from "~~/hooks/scaffold-eth";
 import { ethers } from "ethers"; // v6
 import { useAccount } from 'wagmi';
 import { Address, InputBase } from "~~/components/scaffold-eth";
-import { CheckCircleIcon, DocumentDuplicateIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { 
+  CheckCircleIcon, 
+  DocumentDuplicateIcon, 
+  TrashIcon,
+  FireIcon 
+} from "@heroicons/react/24/outline";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { Spinner } from "~~/components/Spinner";
 import * as dotenv from "dotenv";
@@ -35,6 +41,7 @@ const Your_StAdds: NextPage = () => {
   const [isConnected_, setIsConnected_] = useState(false);
   const [publicKeyCopied, setPublicKeyCopied] = useState(false); 
   const [gettingPublicKey, setGettingPublicKey] = useState(false); 
+  const [isBurnerWalletNew, setIsBurnerWalletNew] = useState(false); 
   const [errorCustom, setErrorCustom] = useState("");
   const [errorPK, setErrorPK] = useState("");
   const [errorPD, setErrorPD] = useState("");
@@ -253,10 +260,9 @@ const Your_StAdds: NextPage = () => {
   
     const sharedSecretBigInt = BigInt(sharedSecretToNumber);
     const privateKeyBigInt = BigInt(privateKey);
-    const stealthPrivateKey = (privateKeyBigInt + sharedSecretBigInt) % modulo; // can overflow
-    const stealthPrivateKeyHex = '0x' + stealthPrivateKey.toString(16);
+    const stealthPrivateKeyNew = (privateKeyBigInt + sharedSecretBigInt) % modulo; // can overflow
+    const stealthPrivateKeyHex = '0x' + stealthPrivateKeyNew.toString(16);
     setStealthPrivateKey(stealthPrivateKeyHex);
-    saveBurnerSK(`0x${stealthPrivateKey.toString(16)}`);
     const wallet = new ethers.Wallet(stealthPrivateKeyHex);
     setStealthAddress(wallet.address);
   }
@@ -264,6 +270,11 @@ const Your_StAdds: NextPage = () => {
   const handleCheck = () => {
     setUserAddress(signer ? signer : "");
     setGettingPublicKey(true);
+  }
+
+  const setBurnerWallet = () => {    
+    setIsBurnerWalletNew(true);
+    saveBurnerSK(`0x${stealthPrivateKey.slice(2)}`);
   }
 
   useEffect(() => {
@@ -360,6 +371,7 @@ const Your_StAdds: NextPage = () => {
 
   useEffect(() => {
     setErrorPrK("");
+    setIsBurnerWalletNew(false);
     if (userPrivateKey === "") return;
     if (
       !(Boolean(publishedData.match(/^0x[a-f0-9]+$/g)) ||
@@ -368,35 +380,28 @@ const Your_StAdds: NextPage = () => {
       setErrorPrK("Not a private key!");
       return;
     }
-    if (userPrivateKey.length === 66 && userPrivateKey.slice(0,2) === "0x") {
-      if (signer) {
-        const wallet = new ethers.Wallet(userPrivateKey);
-        if (wallet.address !== signer) {
-          setErrorPrK("Not your private key!");
-          return;
-        } else {
-          getStealthPrivateKey(userPrivateKey);
-        }
-      } else {
-        getStealthPrivateKey(userPrivateKey);
+    if (
+      userPrivateKey.length === 66 && 
+      userPrivateKey.slice(0,2) === "0x"
+    ) {
+      const wallet = new ethers.Wallet(userPrivateKey);
+      if (signer && wallet.address !== signer) {
+        setErrorPrK("Not your private key!");
       }
-      } else if (
-        userPrivateKey.length === 64 && 
-        userPrivateKey.slice(0,2) !== "0x"
-        ) {
-        if (signer) {
-          const wallet = new ethers.Wallet(userPrivateKey);
-          if (wallet.address !== signer) {
-            setErrorPrK("Not your private key!");
-            return;
-          } else {
-            setUserPrivateKey('0x' + userPrivateKey);
-            getStealthPrivateKey('0x' + userPrivateKey);
-          } 
-        }          
-      } else {
-        setErrorPrK("Not a private key!");
-      }    
+      getStealthPrivateKey(userPrivateKey);
+    } else if (
+      userPrivateKey.length === 64 && 
+      userPrivateKey.slice(0,2) !== "0x"
+    ) {
+      const wallet = new ethers.Wallet(userPrivateKey);
+      if (signer && wallet.address !== signer) {
+        setErrorPrK("Not your private key!");
+      }
+      setUserPrivateKey('0x' + userPrivateKey);
+      getStealthPrivateKey('0x' + userPrivateKey);
+    } else {
+      setErrorPrK("Not a private key!");
+    }
   }, [userPrivateKey, publishedData]);
 
   useEffect(() => {
@@ -408,7 +413,7 @@ const Your_StAdds: NextPage = () => {
         title="Your StAdds"
         description="Get your StAdds here!"
       />
-      
+
       <div className="flex sm:flex-row flex-col">
       {isConnected_ &&
       (
@@ -723,8 +728,15 @@ const Your_StAdds: NextPage = () => {
             }}
           />
 
+          {errorPrK !== "" &&
+          (
+          <span className="ml-2 text-[0.95rem] text-red-500 mt-3">
+           {errorPrK}
+          </span>
+          )}
+
           {userPrivateKey !== "" &&
-          errorPrK == "" &&
+          errorPrK !== "Not a private key!" &&
           (
           <div className="form-control mb-3 mt-3">
           <label className="label">
@@ -742,12 +754,34 @@ const Your_StAdds: NextPage = () => {
             </span>
           </label>
           <div className="mx-3">
-            <div className="flex flex-row">
-            {getShort(stealthPrivateKey)}
+          <div className="flex flex-row">
+            
+            {loadBurnerSK() !== `0x${stealthPrivateKey.slice(2)}` &&
+            <button
+            type="button"
+            onClick={() => setBurnerWallet()}
+            >
+              <FireIcon 
+              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+              aria-hidden="true"
+              />
+            </button>
+            }
+
+            {loadBurnerSK() === `0x${stealthPrivateKey.slice(2)}` &&
+            <CheckCircleIcon 
+              className="text-xl font-normal text-orange-600 h-5 w-5 mt-0.5"
+              aria-hidden="true"
+            />
+            }
+
+            <div className="mx-2">
+              {getShort(stealthPrivateKey)}           
+            </div>            
 
             {stealthPrivateKeyCopied ? (
             <CheckCircleIcon
-              className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
               aria-hidden="true"
             />
             ) : (
@@ -761,11 +795,11 @@ const Your_StAdds: NextPage = () => {
               }}
             >
             <DocumentDuplicateIcon
-              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer mx-2"
+              className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
             />
             </CopyToClipboard>
             )}
-            </div>
+          </div>
           </div>
           </div>
 
@@ -799,13 +833,6 @@ const Your_StAdds: NextPage = () => {
           </div>
           )}
 
-          {errorPrK !== "" &&
-          (
-          <span className="ml-2 text-[0.95rem] text-red-500 mt-3">
-           {errorPrK}
-          </span>
-          )}
-
         </div>
         )}
 
@@ -826,7 +853,7 @@ const Your_StAdds: NextPage = () => {
         </span>
       </div>
 
-      {PublishedData.slice().reverse().map((arr, index) => (
+      {PublishedData.slice().reverse().map((arr: any, index: any) => (
       <div>
         {arr.creator !== ethers.ZeroAddress &&
         (

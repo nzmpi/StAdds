@@ -5,7 +5,7 @@ const contracts = {
       name: "localhost",
       contracts: {
         StAdds: {
-          address: "0x59b670e9fA9D0A427751Af201D676719a970857b",
+          address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
           abi: [
             {
               inputs: [],
