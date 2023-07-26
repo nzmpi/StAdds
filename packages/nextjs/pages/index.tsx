@@ -1,13 +1,11 @@
 import type { NextPage } from "next";
-import Link from "next/link";
 import { MetaHeader } from "~~/components/MetaHeader";
 import React,{ useState, useEffect } from "react";
 import { ethers } from "ethers"; // v6
 import { AddressInput, Address } from "~~/components/scaffold-eth";
 import { 
   useScaffoldContractRead,
-  useScaffoldContractWrite,
-  useScaffoldEventSubscriber
+  useScaffoldContractWrite
 } from "~~/hooks/scaffold-eth";
 import { 
   CheckCircleIcon, 
@@ -18,6 +16,7 @@ import { CopyToClipboard } from "react-copy-to-clipboard";
 import { Spinner } from "~~/components/Spinner";
 import { useAccount } from 'wagmi';
 import Countdown from "react-countdown";
+import { toast } from "react-hot-toast";
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 
@@ -110,7 +109,7 @@ const Home: NextPage = () => {
     if (network === "arbitrum-goerli") return "Arbitrum Goerli";
   }
 
-  const checkPublishedData = () => {
+  const doesPublishedDataExist = () => {
     if (!PublishedData) return true;
     if (PublishedData.length === 0) return false;
     
@@ -281,7 +280,7 @@ const Home: NextPage = () => {
   }, [secret]);
 
   useEffect(() => {
-    setPublishedDataExists(checkPublishedData());
+    setPublishedDataExists(doesPublishedDataExist());
   }, [PublishedData, addPublishedDataLoading, publishedData]);
 
   useEffect(() => {
@@ -311,18 +310,30 @@ const Home: NextPage = () => {
     <>
       <MetaHeader/>
       <div className="flex items-center flex-col flex-grow pt-10">
-      <div className={"mx-auto mt-7"}>
-        <form className={"w-[450px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
+        <div>
+        <span className="text-[3rem] text-center h-16 md:h-20 text-pink-700">
+          St
+        </span>
+        <span className="text-[3rem] text-center h-16 md:h-20">
+          ealth {" "}
+        </span>
+        <span className="text-[3rem] text-center h-16 md:h-20 text-pink-700">
+          Add
+        </span>
+        <span className="text-[3rem] text-center h-16 md:h-20">
+          resse
+        </span>
+        <span className="text-[3rem] text-center h-16 md:h-20 text-pink-700">
+          s
+        </span>
+      </div>
+      <div className="mx-auto mt-7">        
+        <form className="w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5 flex justify-center">
         <div className="flex-column">
         <div className="flex flex-row">
           <span className="text-3xl">
             Create a Stealth Address
-          </span>
-          <div className="tooltip tooltip-secondary mt-2 ml-2" data-tip={<Link href="https://github.com/nzmpi/StAdds/blob/main/packages/hardhat/helper.js#L10" passHref className="link">
-              this
-            </Link>}>
-          <InformationCircleIcon className="h-6 w-6"/>    
-          </div>      
+          </span>     
         </div>
           <div className="form-control mb-3">
             <label className="label">
@@ -473,11 +484,18 @@ const Home: NextPage = () => {
           {publicKeyLong &&         
           (                   
           <div className="form-control mb-3">
+          <div className="flex flex-row">
           <label className="label">
             <span className="label-text font-bold">
               Enter Your Secret:
             </span>
           </label>
+            <div 
+              className="tooltip tooltip-secondary mt-2"
+              data-tip="Your secret is used as a salt">
+              <InformationCircleIcon className="h-5 w-5 mt-0.5" />
+            </div>
+          </div>
           <textarea
             value={secret}
             onChange={e => setSecret(e.target.value)}

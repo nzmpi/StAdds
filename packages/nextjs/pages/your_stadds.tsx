@@ -5,7 +5,7 @@ import { MetaHeader } from "~~/components/MetaHeader";
 import { 
   useScaffoldContractRead,
   useScaffoldContractWrite,
-  useScaffoldEventSubscriber
+  saveBurnerSK
 } from "~~/hooks/scaffold-eth";
 import { ethers } from "ethers"; // v6
 import { useAccount } from 'wagmi';
@@ -109,14 +109,9 @@ const Your_StAdds: NextPage = () => {
     return PK.slice(0, 16) + "..." + PK.slice(-14);
   }
 
-  const getShortPublishedData = (PD: string) => {
+  const getShort = (PD: string) => {
     if (PD === "") return "";
     return PD.slice(0, 10) + "..." + PD.slice(-11);
-  }
-
-  const getShortPrivateKey = (PrK: string) => {
-    if (PrK === "") return "";
-    return PrK.slice(0, 10) + "..." + PrK.slice(-11);
   }
 
   const cleanEverything = () => {
@@ -126,15 +121,6 @@ const Your_StAdds: NextPage = () => {
     setPublicKeyLong("");
     setPublicKeySource("");
     setNetworkSource("");
-  }
-
-  const getFullPublicKey = (PK: any) => {
-    if (
-      !PK || 
-      (PK.x === ethers.ZeroHash &&
-       PK.y === ethers.ZeroHash)
-    ) return "";
-    return PK.x.slice(0, 68) + PK.y.slice(-64);
   }
 
   const getNetworkName = (network: string) => {
@@ -168,7 +154,7 @@ const Your_StAdds: NextPage = () => {
   }
 
   const isPublishedDataEmpty = () => {
-    if (!PublishedData || PublishedData.length === 0) return;
+    if (!PublishedData || PublishedData.length === 0) return true;
     for (let i = 0; i < PublishedData.length; ++i) {
       if (PublishedData[i].creator !== ethers.ZeroAddress) return false;
     }
@@ -267,14 +253,15 @@ const Your_StAdds: NextPage = () => {
   
     const sharedSecretBigInt = BigInt(sharedSecretToNumber);
     const privateKeyBigInt = BigInt(privateKey);
-    const stealthPrivateKey = (privateKeyBigInt + sharedSecretBigInt) % modulo; // can overflow uint256
+    const stealthPrivateKey = (privateKeyBigInt + sharedSecretBigInt) % modulo; // can overflow
     const stealthPrivateKeyHex = '0x' + stealthPrivateKey.toString(16);
     setStealthPrivateKey(stealthPrivateKeyHex);
+    saveBurnerSK(`0x${stealthPrivateKey.toString(16)}`);
     const wallet = new ethers.Wallet(stealthPrivateKeyHex);
     setStealthAddress(wallet.address);
   }
 
-  const handleOnCheck = () => {
+  const handleCheck = () => {
     setUserAddress(signer ? signer : "");
     setGettingPublicKey(true);
   }
@@ -382,8 +369,8 @@ const Your_StAdds: NextPage = () => {
       return;
     }
     if (userPrivateKey.length === 66 && userPrivateKey.slice(0,2) === "0x") {
-      const wallet = new ethers.Wallet(userPrivateKey);
       if (signer) {
+        const wallet = new ethers.Wallet(userPrivateKey);
         if (wallet.address !== signer) {
           setErrorPrK("Not your private key!");
           return;
@@ -397,8 +384,8 @@ const Your_StAdds: NextPage = () => {
         userPrivateKey.length === 64 && 
         userPrivateKey.slice(0,2) !== "0x"
         ) {
-        const wallet = new ethers.Wallet(userPrivateKey);
         if (signer) {
+          const wallet = new ethers.Wallet(userPrivateKey);
           if (wallet.address !== signer) {
             setErrorPrK("Not your private key!");
             return;
@@ -454,7 +441,7 @@ const Your_StAdds: NextPage = () => {
           <div className="mt-4 flex justify-center"> 
           <button
             type="button"             
-            onClick={handleOnCheck}
+            onClick={handleCheck}
             className={"btn btn-warning font-black w-1/3 flex items-center"}
           > 
           {!gettingPublicKey &&
@@ -493,12 +480,12 @@ const Your_StAdds: NextPage = () => {
               </div>
               {publicKeyCopied ? (
               <CheckCircleIcon
-                className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+                className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
                 aria-hidden="true"
               />
               ) : (
               <CopyToClipboard
-                text={getFullPublicKey(PublicKey)}
+                text={publicKeyLong}
                 onCopy={() => {
                   setPublicKeyCopied(true);
                 setTimeout(() => {
@@ -539,12 +526,12 @@ const Your_StAdds: NextPage = () => {
               </div>
               {publicKeyCopied ? (
               <CheckCircleIcon
-                className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
+                className="text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
                 aria-hidden="true"
               />
               ) : (
               <CopyToClipboard
-                text={getFullPublicKey(PublicKey)}
+                text={publicKeyLong}
                 onCopy={() => {
                   setPublicKeyCopied(true);
                 setTimeout(() => {
@@ -648,24 +635,12 @@ const Your_StAdds: NextPage = () => {
         )}
 
         {userPublicKey !== "" &&
-         errorPK === "Not your Public Key!" && 
+         errorPK !== "" && 
         (     
         <div className="flex justify-center">           
         <label className="label mt-5">
           <span className="label-text font-bold text-red-500">
-            Not your Public Key!
-          </span>
-        </label>
-        </div>
-        )}
-
-        {userPublicKey !== "" &&
-         errorPK === "Not a Public Key!" && 
-        (           
-        <div className="flex justify-center">     
-        <label className="label mt-5">
-          <span className="label-text font-bold text-red-500">
-            Not a Public Key!
+            {errorPK}
           </span>
         </label>
         </div>
@@ -681,8 +656,7 @@ const Your_StAdds: NextPage = () => {
             </Link>{" "}helper function to get your Public Key from your private key
           </span>
         </label>
-        )}
-        
+        )}        
 
         </div>
         </div>
@@ -693,6 +667,7 @@ const Your_StAdds: NextPage = () => {
       </div>
       </div>
       )}
+
       <div className="flex items-center flex-col flex-grow pt-8">
       <div className={"mx-auto mt-7"}>
       <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
@@ -709,7 +684,9 @@ const Your_StAdds: NextPage = () => {
              Your Published Data
             </span>
           </label>
-          <InputBase placeholder="0x... or index" value={publishedData} 
+          <InputBase 
+            placeholder={!isPublishedDataEmpty() ? `0x... or index` : `0x...`} 
+            value={publishedData} 
             onChange={value => {
               if (value === "") {
                 setPublishedData("");
@@ -766,7 +743,7 @@ const Your_StAdds: NextPage = () => {
           </label>
           <div className="mx-3">
             <div className="flex flex-row">
-            {getShortPrivateKey(stealthPrivateKey)}
+            {getShort(stealthPrivateKey)}
 
             {stealthPrivateKeyCopied ? (
             <CheckCircleIcon
@@ -822,7 +799,7 @@ const Your_StAdds: NextPage = () => {
           </div>
           )}
 
-          {errorPrK === "Not a private key!" &&
+          {errorPrK !== "" &&
           (
           <span className="ml-2 text-[0.95rem] text-red-500 mt-3">
            {errorPrK}
@@ -841,7 +818,7 @@ const Your_StAdds: NextPage = () => {
        PublishedData.length > 0 &&
        !isPublishedDataEmpty() &&
       (        
-      <form className={"bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5 mt-10"}>
+      <form className={"w-[450px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5 mt-10"}>
       <div className="flex-column">       
       <div className="mt-2 px-4">
         <span className="text-2xl">
@@ -876,7 +853,7 @@ const Your_StAdds: NextPage = () => {
           Published Data:           
           </div>
 
-          {getShortPublishedData(arr.x + arr.y.slice(2))}
+          {getShort(arr.x + arr.y.slice(2))}
 
           {publishedDataCopied?.[index] ? (
             <CheckCircleIcon
@@ -907,7 +884,6 @@ const Your_StAdds: NextPage = () => {
       </div>
       </form>
       )}
-
 
       </div>
       </div>

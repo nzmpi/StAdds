@@ -5,17 +5,12 @@ const contracts = {
       name: "localhost",
       contracts: {
         StAdds: {
-          address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+          address: "0x59b670e9fA9D0A427751Af201D676719a970857b",
           abi: [
             {
               inputs: [],
               stateMutability: "payable",
               type: "constructor",
-            },
-            {
-              inputs: [],
-              name: "DidntSend",
-              type: "error",
             },
             {
               inputs: [],
@@ -29,7 +24,7 @@ const contracts = {
             },
             {
               inputs: [],
-              name: "NotSinger",
+              name: "NotSender",
               type: "error",
             },
             {
@@ -200,7 +195,7 @@ const contracts = {
               inputs: [],
               name: "acceptOwnership",
               outputs: [],
-              stateMutability: "nonpayable",
+              stateMutability: "payable",
               type: "function",
             },
             {
@@ -242,6 +237,19 @@ const contracts = {
               name: "addPublishedData",
               outputs: [],
               stateMutability: "nonpayable",
+              type: "function",
+            },
+            {
+              inputs: [],
+              name: "ec",
+              outputs: [
+                {
+                  internalType: "contract EC",
+                  name: "",
+                  type: "address",
+                },
+              ],
+              stateMutability: "view",
               type: "function",
             },
             {
@@ -315,6 +323,108 @@ const contracts = {
               inputs: [
                 {
                   internalType: "address",
+                  name: "recipientAddress",
+                  type: "address",
+                },
+                {
+                  internalType: "string",
+                  name: "secret",
+                  type: "string",
+                },
+              ],
+              name: "getStealthAddressFromAddress",
+              outputs: [
+                {
+                  internalType: "address",
+                  name: "stealthAddress",
+                  type: "address",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "publishedDataX",
+                  type: "bytes32",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "publishedDataY",
+                  type: "bytes32",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "bytes32",
+                  name: "publicKeyX",
+                  type: "bytes32",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "publicKeyY",
+                  type: "bytes32",
+                },
+                {
+                  internalType: "string",
+                  name: "secret",
+                  type: "string",
+                },
+              ],
+              name: "getStealthAddressFromPublicKey",
+              outputs: [
+                {
+                  internalType: "address",
+                  name: "stealthAddress",
+                  type: "address",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "publishedDataX",
+                  type: "bytes32",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "publishedDataY",
+                  type: "bytes32",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "bytes32",
+                  name: "privateKey",
+                  type: "bytes32",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "publishedDataX",
+                  type: "bytes32",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "publishedDataY",
+                  type: "bytes32",
+                },
+              ],
+              name: "getStealthPrivateKey",
+              outputs: [
+                {
+                  internalType: "bytes32",
+                  name: "stealthPrivateKey",
+                  type: "bytes32",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "address",
                   name: "_addr",
                   type: "address",
                 },
@@ -366,7 +476,7 @@ const contracts = {
               ],
               name: "proposeOwner",
               outputs: [],
-              stateMutability: "nonpayable",
+              stateMutability: "payable",
               type: "function",
             },
             {
@@ -387,65 +497,6 @@ const contracts = {
               name: "removePublishedData",
               outputs: [],
               stateMutability: "nonpayable",
-              type: "function",
-            },
-            {
-              inputs: [
-                {
-                  internalType: "address",
-                  name: "token",
-                  type: "address",
-                },
-                {
-                  internalType: "address",
-                  name: "to",
-                  type: "address",
-                },
-                {
-                  internalType: "uint256",
-                  name: "amount",
-                  type: "uint256",
-                },
-              ],
-              name: "sendERC20",
-              outputs: [],
-              stateMutability: "payable",
-              type: "function",
-            },
-            {
-              inputs: [
-                {
-                  internalType: "address",
-                  name: "token",
-                  type: "address",
-                },
-                {
-                  internalType: "address",
-                  name: "to",
-                  type: "address",
-                },
-                {
-                  internalType: "uint256",
-                  name: "tokenId",
-                  type: "uint256",
-                },
-              ],
-              name: "sendERC721",
-              outputs: [],
-              stateMutability: "payable",
-              type: "function",
-            },
-            {
-              inputs: [
-                {
-                  internalType: "address",
-                  name: "to",
-                  type: "address",
-                },
-              ],
-              name: "sendMatic",
-              outputs: [],
-              stateMutability: "payable",
               type: "function",
             },
             {
