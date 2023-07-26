@@ -239,7 +239,7 @@ const Your_StAdds: NextPage = () => {
     ) return true;
     return false;
   }
-
+  
   async function getStealthPrivateKey(privateKey: string) {  
     // Biggest number allowed
     // https://ethereum.stackexchange.com/questions/10055/is-each-ethereum-address-shared-by-theoretically-2-96-private-keys
@@ -251,8 +251,8 @@ const Your_StAdds: NextPage = () => {
     const publishedDataPoint = ec.curve.point(publishedDataX, publishedDataY);
   
     const sharedSecretPoint = publishedDataPoint.mul(privateKey.slice(2));
-    const sharedSecretX = '0x' + sharedSecretPoint.x.toString('hex');
-    const sharedSecretY = '0x' + sharedSecretPoint.y.toString('hex');
+    const sharedSecretX = ethers.toBeHex(sharedSecretPoint.x.toString());
+    const sharedSecretY = ethers.toBeHex(sharedSecretPoint.y.toString());
     const sharedSecretToNumber = ethers.solidityPackedKeccak256(
       ['uint256', 'uint256'],
       [ sharedSecretX, sharedSecretY ]
@@ -260,8 +260,8 @@ const Your_StAdds: NextPage = () => {
   
     const sharedSecretBigInt = BigInt(sharedSecretToNumber);
     const privateKeyBigInt = BigInt(privateKey);
-    const stealthPrivateKeyNew = (privateKeyBigInt + sharedSecretBigInt) % modulo; // can overflow
-    const stealthPrivateKeyHex = '0x' + stealthPrivateKeyNew.toString(16);
+    let stealthPrivateKeyNew = (privateKeyBigInt + sharedSecretBigInt) % modulo; // can overflow
+    const stealthPrivateKeyHex = ethers.toBeHex(stealthPrivateKeyNew);
     setStealthPrivateKey(stealthPrivateKeyHex);
     const wallet = new ethers.Wallet(stealthPrivateKeyHex);
     setStealthAddress(wallet.address);

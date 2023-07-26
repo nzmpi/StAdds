@@ -233,8 +233,8 @@ const Home: NextPage = () => {
     const publicKey = ec.curve.point(publicKeyX, publicKeyY);
 
     const sharedSecretPoint = publicKey.mul(secretToNumber.slice(2));
-    const sharedSecretX = '0x' + sharedSecretPoint.getX().toString('hex');
-    const sharedSecretY = '0x' + sharedSecretPoint.getY().toString('hex');
+    const sharedSecretX = ethers.toBeHex(sharedSecretPoint.x.toString());
+    const sharedSecretY = ethers.toBeHex(sharedSecretPoint.y.toString());
     const sharedSecretToNumber = ethers.solidityPackedKeccak256(
       ['uint256', 'uint256'],
       [ sharedSecretX, sharedSecretY ]
@@ -242,8 +242,8 @@ const Home: NextPage = () => {
     const sharedSecretGPoint = ecG.mul(sharedSecretToNumber.slice(2));
 
     const stealthPublicKey = publicKey.add(sharedSecretGPoint);
-    const stealthPublicX = '0x' + stealthPublicKey.getX().toString('hex');
-    const stealthPublicY = '0x' + stealthPublicKey.getY().toString('hex');
+    const stealthPublicX = ethers.toBeHex(stealthPublicKey.x.toString());
+    const stealthPublicY = ethers.toBeHex(stealthPublicKey.y.toString());
     const stealthPublicKeyToNumber = ethers.solidityPackedKeccak256(
       ['uint256', 'uint256'],
       [ stealthPublicX, stealthPublicY ]
@@ -253,8 +253,8 @@ const Home: NextPage = () => {
     setStealthAddress(newStealthAddress);
 
     const publishedData_ = ecG.mul(secretToNumber.slice(2));
-    const publishedData_X = '0x' + publishedData_.getX().toString('hex');
-    const publishedData_Y = '0x' + publishedData_.getY().toString('hex');
+    const publishedData_X = ethers.toBeHex(publishedData_.x.toString());
+    const publishedData_Y = ethers.toBeHex(publishedData_.y.toString());
     setPublishedData(publishedData_X + publishedData_Y.slice(2));
   }
 
