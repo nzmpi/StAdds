@@ -2,7 +2,7 @@
 
 A dApp that helps users to create and retrieve stealth addresses.
 
-Site: https://stadds.vercel.app/
+Site: https://stadds.vercel.app
 
 ## How to use
 
