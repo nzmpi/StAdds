@@ -1,4 +1,4 @@
-# StAds
+# StAdds
 
 A dApp that helps users to create and retrieve stealth addresses.
 
