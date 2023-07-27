@@ -4,6 +4,8 @@ A dApp that helps users to create and retrieve stealth addresses.
 
 Site: https://stadds.vercel.app
 
+Contract on Polygon: https://polygonscan.com/address/0xf5f3c8cb83af69b76d85162d5edc5705677f7647
+
 ## How to use
 
 In `Home` tab:
