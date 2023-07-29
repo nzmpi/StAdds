@@ -484,16 +484,17 @@ const Home: NextPage = () => {
           (                   
           <div className="form-control mb-3">
           <div className="flex flex-row">
+          <div 
+            className="tooltip tooltip-secondary mt-2"
+            data-tip="Your secret is used as a salt">
+            <InformationCircleIcon className="h-5 w-5 mt-0.5" />
+          </div>
           <label className="label">
             <span className="label-text font-bold">
               Enter Your Secret:
             </span>
           </label>
-            <div 
-              className="tooltip tooltip-secondary mt-2"
-              data-tip="Your secret is used as a salt">
-              <InformationCircleIcon className="h-5 w-5 mt-0.5" />
-            </div>
+            
           </div>
           <textarea
             value={secret}
@@ -509,14 +510,23 @@ const Home: NextPage = () => {
           (
           <div>
           <div className="form-control mb-3">
+          <div className="flex flex-row">
+          <div 
+            className="tooltip tooltip-secondary mt-2"
+            data-tip="Send some MATIC to this address!">
+            <InformationCircleIcon className="h-5 w-5 mt-0.5" />
+          </div>
           <label className="label">
             <span className="label-text font-bold">
               {addressTo === signer ? "Your" : "Their"} Stealth Address:
-            </span>
+            </span>          
           </label>
-            <div className="mx-3">
+          </div>
+          <div>
+            <div className="mx-3 mt-1">
               <Address address={stealthAddress}/>
             </div>
+          </div>
           </div>
 
           <div className="form-control mb-3">
