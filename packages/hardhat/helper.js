@@ -26,7 +26,7 @@ getPublicKey();
 
 /**
  * @notice Gets your stealth private key
- * from your private key and publishedData
+ * from your private key and shared secret
  * more info: https://vitalik.ca/general/2023/01/20/stealth.html
  */
 async function getStealthPrivateKey() {
