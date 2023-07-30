@@ -4,7 +4,7 @@ const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 
 /**
- * @dev Gets your public key and its coordinates
+ * @notice Gets your public key and its coordinates
  * from your private key 
  */
 async function getPublicKey() {
@@ -25,32 +25,32 @@ async function getPublicKey() {
 getPublicKey();
 
 /**
- * @dev Gets your stealth private key
+ * @notice Gets your stealth private key
  * from your private key and publishedData
  * more info: https://vitalik.ca/general/2023/01/20/stealth.html
  */
 async function getStealthPrivateKey() {
   const privateKey = '0x...';
-  const publishedData = '0x...';
+  const sharedSecret = '0x...';
 
   // Biggest number allowed
   // https://ethereum.stackexchange.com/questions/10055/is-each-ethereum-address-shared-by-theoretically-2-96-private-keys
   const modulo = BigNumber.from('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
 
   // Remove "0x" prefix for elliptic library  
-  const publishedDataX = publishedData.slice(2,66);
-  const publishedDataY = publishedData.slice(66);
-  const publishedDataPoint = ec.curve.point(publishedDataX, publishedDataY);
+  let sharedSecretPointX = sharedSecret.slice(2,66);
+  let sharedSecretPointY = sharedSecret.slice(66);
+  let sharedSecretPoint = ec.curve.point(sharedSecretPointX, sharedSecretPointY);
 
-  const sharedSecretPoint = publishedDataPoint.mul(privateKey.slice(2));
-  const sharedSecretX = '0x' + sharedSecretPoint.x.toString('hex');
-  const sharedSecretY = '0x' + sharedSecretPoint.y.toString('hex');
-  const sharedSecretToNumber = ethers.utils.solidityKeccak256(
+  sharedSecretPoint = sharedSecretPoint.mul(privateKey.slice(2));
+  sharedSecretPointX = '0x' + sharedSecretPoint.x.toString('hex');
+  sharedSecretPointY = '0x' + sharedSecretPoint.y.toString('hex');
+  const sharedSecretPointToNumber = ethers.utils.solidityKeccak256(
     ['uint256', 'uint256'],
-    [ sharedSecretX, sharedSecretY ]
+    [ sharedSecretPointX, sharedSecretPointY ]
   );
 
-  const sharedSecretBigInt = BigNumber.from(sharedSecretToNumber);
+  const sharedSecretBigInt = BigNumber.from(sharedSecretPointToNumber);
   const privateKeyBigInt = BigNumber.from(privateKey);
   const stealthPrivateKey = (privateKeyBigInt.add(sharedSecretBigInt)).mod(modulo); // can overflow uint256
   const stealthPrivateKeyHex = stealthPrivateKey.toHexString();

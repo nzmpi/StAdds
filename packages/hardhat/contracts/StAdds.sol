@@ -6,10 +6,10 @@ import "./lib/Errors.sol";
 import "./lib/Events.sol"; 
 
 /**@title StAdds
- * A contract that creats a Stealth Address and keeps track of published data
+ * A contract that creats a Stealth Address and keeps track of shared secrets
  */ 
 contract StAdds is Events {
-  // users can add Published Data every 10 minutes
+  // users can add a Shared Secret every 10 minutes
   uint256 public constant timeLock = 10 minutes;
   address public owner;
   address public pendingOwner;
@@ -20,16 +20,16 @@ contract StAdds is Events {
     bytes32 x;
     bytes32 y;
   }
-  struct PublishedData {
+  struct SharedSecret {
     bytes32 x;
     bytes32 y;
     address creator;
   }
 
   mapping (address => Point) publicKeys;
-  mapping (address => PublishedData[]) publishedData;
+  mapping (address => SharedSecret[]) sharedSecrets;
   // cheaper than iterating over big arrays
-  mapping (bytes => bool) isPublishedDataProvided;
+  mapping (bytes => bool) isSharedSecretProvided;
   mapping (address => uint256) timeStamps;
 
   constructor() payable {
@@ -43,7 +43,7 @@ contract StAdds is Events {
    * @param publicKeyY - y coordinate of the public key
    */
   function addPublicKey(bytes32 publicKeyX, bytes32 publicKeyY) external {
-    if (isPubKeyProvided(msg.sender)) revert Errors.PublicKeyProvided();
+    if (isPublicKeyProvided(msg.sender)) revert Errors.PublicKeyProvided();
     bytes memory publicKey = abi.encodePacked(publicKeyX, publicKeyY);
     // 0x00FF... is a mask to get the address from the hashed public key
     bool isSender = (uint256(keccak256(publicKey)) & 0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF) == uint256(uint160(msg.sender));
@@ -53,61 +53,66 @@ contract StAdds is Events {
   }
 
   /**
-   * @dev Remove sender's public key
+   * @notice Remove sender's public key
    */
   function removePublicKey() external {
-    if (!isPubKeyProvided(msg.sender)) revert Errors.PublicKeyNotProvided();
+    if (!isPublicKeyProvided(msg.sender)) revert Errors.PublicKeyNotProvided();
     delete publicKeys[msg.sender];
     emit PublicKeyRemoved(msg.sender);
   }
 
   /**
-   * @dev Add published data
+   * @notice Add a Shared Secret
+   * this creates a link between the sender and the receiver
    * @param receiver - address of the receiver
-   * @param publishedDataX - x coordinate of the published data
-   * @param publishedDataY - y coordinate of the published data
-   * @notice this creates a link between the sender and the receiver
+   * @param sharedSecretX - x coordinate of the Shared Secret
+   * @param sharedSecretY - y coordinate of the Shared Secret
    */
-  function addPublishedData(
+  function addSharedSecret(
     address receiver,
-    bytes32 publishedDataX, 
-    bytes32 publishedDataY
+    bytes32 sharedSecretX, 
+    bytes32 sharedSecretY
   ) external {
-    if (doesPublishedDataExist(
-      publishedDataX, 
-      publishedDataY
-    )) revert Errors.PublishedDataExists();
+    if (doesSharedSecretExist(
+      sharedSecretX, 
+      sharedSecretY
+    )) revert Errors.SharedSecretExists();
     uint256 allowedTime = timeStamps[msg.sender];
-    if (allowedTime != 0 && allowedTime > block.timestamp) revert Errors.PublishedDataCooldown();
-    publishedData[receiver].push(PublishedData(
-      publishedDataX, 
-      publishedDataY,
+    if (allowedTime != 0 && allowedTime > block.timestamp) revert Errors.SharedSecretCooldown();
+    sharedSecrets[receiver].push(SharedSecret(
+      sharedSecretX, 
+      sharedSecretY,
       msg.sender
     ));
     timeStamps[msg.sender] = block.timestamp + timeLock;
-    emit NewPublishedData(msg.sender, receiver, publishedDataX, publishedDataY); 
+    emit NewSharedSecret(
+      msg.sender, 
+      receiver, 
+      sharedSecretX, 
+      sharedSecretY
+    ); 
   }
 
   /**
-   * @dev Remove published data
-   * @param index - index of the published data
-   * in the publishedData mapping
+   * @notice Remove a shared secret
+   * @param index - index of the shared secret
+   * in the sharedSecret mapping
    */
-  function removePublishedData(uint256 index) external {
-    PublishedData[] storage PDs = publishedData[msg.sender];
-    uint256 len = PDs.length;
+  function removeSharedSecret(uint256 index) external {
+    SharedSecret[] storage ShS = sharedSecrets[msg.sender];
+    uint256 len = ShS.length;
     if (len == 0 || index >= len) revert Errors.WrongIndex();
-    bytes32 PDx = PDs[index].x;
-    bytes32 PDy = PDs[index].y;
-    if (PDx == 0 && PDy == 0) revert Errors.WrongIndex();
-    delete PDs[index];
-    bytes memory data = abi.encodePacked(PDx, PDy);
-    delete isPublishedDataProvided[data];
-    emit PublishedDataRemoved(msg.sender, index);
+    bytes32 ShSX = ShS[index].x;
+    bytes32 ShSY = ShS[index].y;
+    if (ShSX == 0 && ShSY == 0) revert Errors.WrongIndex();
+    delete ShS[index];
+    bytes memory ShSLong = abi.encodePacked(ShSX, ShSY);
+    delete isSharedSecretProvided[ShSLong];
+    emit SharedSecretRemoved(msg.sender, index);
   }
 
   /**
-   * @dev Get stealth address from a public key
+   * @notice Get stealth address from a public key
    * stored in the contract
    * @param secret - salt to generate a stealth address
    */
@@ -116,8 +121,8 @@ contract StAdds is Events {
     string calldata secret
   ) external view returns (
     address stealthAddress, 
-    bytes32 publishedDataX,
-    bytes32 publishedDataY
+    bytes32 sharedSecretX,
+    bytes32 sharedSecretY
   ) {
     Point storage publicKey = publicKeys[recipientAddress];
     bytes32 publicKeyX = publicKey.x;
@@ -129,18 +134,18 @@ contract StAdds is Events {
 
     bytes32 secretToNumber = keccak256(bytes(secret));
 
-    Point memory sharedSecret;
-    (sharedSecret.x, sharedSecret.y) = ec.mul(
+    Point memory sharedSecretPoint;
+    (sharedSecretPoint.x, sharedSecretPoint.y) = ec.mul(
       secretToNumber, 
       publicKeyX, 
       publicKeyY
     );
-    bytes32 sharedSecretToNumber = keccak256(abi.encodePacked(
-      sharedSecret.x, 
-      sharedSecret.y
+    bytes32 sharedSecretPointToNumber = keccak256(abi.encodePacked(
+      sharedSecretPoint.x, 
+      sharedSecretPoint.y
     ));
     Point memory sharedSecretGPoint;
-    (sharedSecretGPoint.x, sharedSecretGPoint.y) = ec.mulG(sharedSecretToNumber);
+    (sharedSecretGPoint.x, sharedSecretGPoint.y) = ec.mulG(sharedSecretPointToNumber);
 
     Point memory stealthPublicKey;
     (stealthPublicKey.x, stealthPublicKey.y) = ec.add(
@@ -156,11 +161,11 @@ contract StAdds is Events {
 
     stealthAddress = address(uint160(stealthPublicKeyToNumber) & 0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
 
-    (publishedDataX, publishedDataY) = ec.mulG(secretToNumber);
+    (sharedSecretX, sharedSecretY) = ec.mulG(secretToNumber);
   }
 
   /**
-   * @dev Get stealth address from a public key
+   * @notice Get stealth address from a public key
    * @param secret - salt to generate a stealth address
    */
   function getStealthAddressFromPublicKey(
@@ -169,8 +174,8 @@ contract StAdds is Events {
     string calldata secret
   ) external view returns (
     address stealthAddress, 
-    bytes32 publishedDataX,
-    bytes32 publishedDataY
+    bytes32 sharedSecretX,
+    bytes32 sharedSecretY
   ) {
     if (
       publicKeyX == 0x0 && 
@@ -179,18 +184,18 @@ contract StAdds is Events {
 
     bytes32 secretToNumber = keccak256(bytes(secret));
 
-    Point memory sharedSecret;
-    (sharedSecret.x, sharedSecret.y) = ec.mul(
+    Point memory sharedSecretPoint;
+    (sharedSecretPoint.x, sharedSecretPoint.y) = ec.mul(
       secretToNumber, 
       publicKeyX, 
       publicKeyY
     );
-    bytes32 sharedSecretToNumber = keccak256(abi.encodePacked(
-      sharedSecret.x, 
-      sharedSecret.y
+    bytes32 sharedSecretPointToNumber = keccak256(abi.encodePacked(
+      sharedSecretPoint.x, 
+      sharedSecretPoint.y
     ));
     Point memory sharedSecretGPoint;
-    (sharedSecretGPoint.x, sharedSecretGPoint.y) = ec.mulG(sharedSecretToNumber);
+    (sharedSecretGPoint.x, sharedSecretGPoint.y) = ec.mulG(sharedSecretPointToNumber);
 
     Point memory stealthPublicKey;
     (stealthPublicKey.x, stealthPublicKey.y) = ec.add(
@@ -206,16 +211,16 @@ contract StAdds is Events {
 
     stealthAddress = address(uint160(stealthPublicKeyToNumber) & 0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
 
-    (publishedDataX, publishedDataY) = ec.mulG(secretToNumber);
+    (sharedSecretX, sharedSecretY) = ec.mulG(secretToNumber);
   }
 
   /**
-   * @dev Get stealth address
+   * @notice Get stealth address
    */  
   function getStealthPrivateKey(
     bytes32 privateKey,
-    bytes32 publishedDataX,
-    bytes32 publishedDataY
+    bytes32 sharedSecretX,
+    bytes32 sharedSecretY
   ) external view returns (bytes32 stealthPrivateKey) {
     // Biggest number allowed
     // https://ethereum.stackexchange.com/questions/10055/is-each-ethereum-address-shared-by-theoretically-2-96-private-keys
@@ -224,10 +229,10 @@ contract StAdds is Events {
     Point memory sharedSecretPoint;
     (sharedSecretPoint.x, sharedSecretPoint.y) = ec.mul(
       privateKey, 
-      publishedDataX, 
-      publishedDataY
+      sharedSecretX, 
+      sharedSecretY
     ); 
-    uint256 sharedSecretToNumber = uint256(keccak256(abi.encodePacked(
+    uint256 sharedSecretPointToNumber = uint256(keccak256(abi.encodePacked(
       sharedSecretPoint.x, 
       sharedSecretPoint.y
     )));
@@ -235,7 +240,7 @@ contract StAdds is Events {
     unchecked {
       stealthPrivateKey = bytes32(addmod(
         uint256(privateKey), 
-        sharedSecretToNumber,
+        sharedSecretPointToNumber,
         modulo
       ));
     }
@@ -262,37 +267,40 @@ contract StAdds is Events {
   }
 
   /**
-   * @dev returns the public key of _addr
+   * @notice returns the public key of _addr
    */
   function getPublicKey(address _addr) external view returns (Point memory) {
     return publicKeys[_addr];
   }
 
   /**
-   * @dev returns all published data of _addr
+   * @notice returns all shared secrets of _addr
    */
-  function getPublishedData(address _addr) external view returns (PublishedData[] memory) {
-    return publishedData[_addr];
+  function getSharedSecrets(address _addr) external view returns (SharedSecret[] memory) {
+    return sharedSecrets[_addr];
   }
 
   /**
-   * @dev returns the timestamp of _addr
+   * @notice returns the timestamp of _addr
    */
   function getTimestamp(address _addr) external view returns (uint256) {
     return timeStamps[_addr];
   }
 
-  function isPubKeyProvided(address _addr) internal view returns (bool) {
+  function isPublicKeyProvided(address _addr) internal view returns (bool) {
     Point storage PBK = publicKeys[_addr];
     return (PBK.x != 0 && PBK.y != 0);
   }
 
-  function doesPublishedDataExist( 
-    bytes32 dataX,
-    bytes32 dataY
+  function doesSharedSecretExist( 
+    bytes32 sharedSecretX,
+    bytes32 sharedSecretY
   ) internal view returns (bool) {
-    bytes memory data = abi.encodePacked(dataX, dataY);
-    return isPublishedDataProvided[data];
+    bytes memory sharedSecretLong = abi.encodePacked(
+      sharedSecretX, 
+      sharedSecretY
+    );
+    return isSharedSecretProvided[sharedSecretLong];
   } 
 
   modifier OnlyOwner {

@@ -22,14 +22,14 @@ const ec = new EC('secp256k1');
 const Home: NextPage = () => {
   const [addressTo, setAddressTo] = useState("");
   const [publicKeyCopied, setPublicKeyCopied] = useState(false);
-  const [publishedDataCopied, setPublishedDataCopied] = useState(false);
+  const [sharedSecretCopied, setSharedSecretCopied] = useState(false);
   const [publicKeyLong, setPublicKeyLong] = useState("");
   const [publicKeySource, setPublicKeySource] = useState("");
   const [networkSource, setNetworkSource] = useState("");
   const [secret, setSecret] = useState("");
   const [stealthAddress, setStealthAddress] = useState("");
-  const [publishedData, setPublishedData] = useState("");
-  const [publishedDataExists, setPublishedDataExists] = useState(true);
+  const [sharedSecret, setSharedSecret] = useState("");
+  const [sharedSecretExists, setSharedSecretExists] = useState(true);
   const [isOnCooldown, setIsOnCooldown] = useState(false);
   // avoiding Error: Hydration failed
   const [isConnected_, setIsConnected_] = useState(false);
@@ -62,9 +62,9 @@ const Home: NextPage = () => {
     args: [addressTo],
   });
 
-  const { data: PublishedData } = useScaffoldContractRead({
+  const { data: SharedSecrets } = useScaffoldContractRead({
     contractName: "StAdds",
-    functionName: "getPublishedData",
+    functionName: "getSharedSecrets",
     args: [addressTo],
   }); 
 
@@ -75,15 +75,15 @@ const Home: NextPage = () => {
   });
 
   const { 
-    writeAsync: addPublishedData, 
-    isLoading: addPublishedDataLoading 
+    writeAsync: addSharedSecret, 
+    isLoading: addSharedSecretLoading 
   } = useScaffoldContractWrite({
     contractName: "StAdds",
-    functionName: "addPublishedData",
+    functionName: "addSharedSecret",
     args: [
       addressTo, 
-      `0x${publishedData.slice(2,66)}`, 
-      `0x${publishedData.slice(66)}`],
+      `0x${sharedSecret.slice(2,66)}`, 
+      `0x${sharedSecret.slice(66)}`],
   });
 
   const getShortPublicKey = () => {
@@ -91,9 +91,9 @@ const Home: NextPage = () => {
     return publicKeyLong.slice(0, 16) + "..." + publicKeyLong.slice(-15);
   }
 
-  const getShortPublishedData = () => {
-    if (publishedData === "") return "";
-    return publishedData.slice(0, 15) + "..." + publishedData.slice(-14);
+  const getShortSharedSecret = () => {
+    if (sharedSecret === "") return "";
+    return sharedSecret.slice(0, 15) + "..." + sharedSecret.slice(-14);
   }
 
   const getNetworkName = (network: string) => {
@@ -108,16 +108,16 @@ const Home: NextPage = () => {
     if (network === "arbitrum-goerli") return "Arbitrum Goerli";
   }
 
-  const doesPublishedDataExist = () => {
-    if (!PublishedData) return true;
-    if (PublishedData.length === 0) return false;
+  const doesSharedSecretExist = () => {
+    if (!SharedSecrets) return true;
+    if (SharedSecrets.length === 0) return false;
     
-    const PDx = publishedData.slice(2,66);
-    const PDy = publishedData.slice(66);
-    for (let i = 0; i < PublishedData.length; i++) {
+    const ShSX = sharedSecret.slice(2,66);
+    const ShSY = sharedSecret.slice(66);
+    for (let i = 0; i < SharedSecrets.length; i++) {
       if (
-        PublishedData[i].x.slice(2) === PDx &&
-        PublishedData[i].y.slice(2) === PDy
+        SharedSecrets[i].x.slice(2) === ShSX &&
+        SharedSecrets[i].y.slice(2) === ShSY
       ) return true;
     }
     return false;
@@ -152,10 +152,10 @@ const Home: NextPage = () => {
     setNetworkSource("");
     setStealthAddress("");
     setSecret("");
-    setPublishedData("");
+    setSharedSecret("");
   }
 
-  async function getPubKey() {
+  async function getPublicKey() {
     for (let i = 0 ; i < networks.length; ++i) {
       const network = networks[i];
       const baseUrl = baseUrls.get(network);
@@ -222,7 +222,7 @@ const Home: NextPage = () => {
   const getStealthAddress = () => {
     if (secret === "") {
       setStealthAddress("");
-      setPublishedData("");
+      setSharedSecret("");
       return;
     }
 
@@ -252,10 +252,10 @@ const Home: NextPage = () => {
     const newStealthAddress = ethers.getAddress('0x' + stealthPublicKeyToNumber.slice(-40));
     setStealthAddress(newStealthAddress);
 
-    const publishedData_ = ecG.mul(secretToNumber.slice(2));
-    const publishedData_X = ethers.toBeHex(publishedData_.x.toString());
-    const publishedData_Y = ethers.toBeHex(publishedData_.y.toString());
-    setPublishedData(publishedData_X + publishedData_Y.slice(2));
+    const sharedSecret_ = ecG.mul(secretToNumber.slice(2));
+    const sharedSecret_X = ethers.toBeHex(sharedSecret_.x.toString());
+    const sharedSecret_Y = ethers.toBeHex(sharedSecret_.y.toString());
+    setSharedSecret(sharedSecret_X + sharedSecret_Y.slice(2));
   }
 
   useEffect(() => {
@@ -270,7 +270,7 @@ const Home: NextPage = () => {
       setGettingPublicKey(false);
       return;
     } else {
-      getPubKey();
+      getPublicKey();
     }
   }, [addressTo]);
 
@@ -279,8 +279,8 @@ const Home: NextPage = () => {
   }, [secret]);
 
   useEffect(() => {
-    setPublishedDataExists(doesPublishedDataExist());
-  }, [PublishedData, addPublishedDataLoading, publishedData]);
+    setSharedSecretExists(doesSharedSecretExist());
+  }, [SharedSecrets, addSharedSecretLoading, sharedSecret]);
 
   useEffect(() => {
     if (!Timestamp || Timestamp < Date.now()/1000) {
@@ -532,24 +532,24 @@ const Home: NextPage = () => {
           <div className="form-control mb-3">
           <label className="label">
             <span className="label-text font-bold">
-              {addressTo === signer ? "Your" : "Their"} Published Data:
+              {addressTo === signer ? "Your" : "Their"} Shared Secret:
             </span>
           </label>
           <div className="flex flex-row mx-3">
-            {getShortPublishedData()}
+            {getShortSharedSecret()}
             
-            {publishedDataCopied ? (
+            {sharedSecretCopied ? (
             <CheckCircleIcon
               className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
               aria-hidden="true"
             />
             ) : (
             <CopyToClipboard
-              text={publishedData}
+              text={sharedSecret}
               onCopy={() => {
-                setPublishedDataCopied(true);
+                setSharedSecretCopied(true);
               setTimeout(() => {
-                setPublishedDataCopied(false);
+                setSharedSecretCopied(false);
               }, 800);
               }}
             >
@@ -567,24 +567,24 @@ const Home: NextPage = () => {
           <div className="mt-3 flex flex-col items-center py-2">
             <button
               type="button"
-              disabled={publishedDataExists}              
-              onClick={async () => {await addPublishedData();}}
+              disabled={sharedSecretExists}              
+              onClick={async () => {await addSharedSecret();}}
               className={"btn btn-warning font-black w-1/3 flex items-center"}
             >              
-            {addPublishedDataLoading && (
+            {addSharedSecretLoading && (
             <>
               <Spinner/>
             </>
             )}
-            {!addPublishedDataLoading && 
-             !publishedDataExists &&
+            {!addSharedSecretLoading && 
+             !sharedSecretExists &&
             (
             <>
               save
             </>
             )}
-            {!addPublishedDataLoading && 
-             publishedDataExists &&
+            {!addSharedSecretLoading && 
+             sharedSecretExists &&
             (
             <>
               exists

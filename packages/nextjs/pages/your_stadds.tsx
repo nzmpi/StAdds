@@ -33,8 +33,8 @@ const Your_StAdds: NextPage = () => {
   const [networkSource, setNetworkSource] = useState("");
   const [userPublicKey, setUserPublicKey] = useState("");
   const [userPrivateKey, setUserPrivateKey] = useState("");
-  const [publishedData, setPublishedData] = useState("");
-  const [publishedDataCopied, setPublishedDataCopied] = useState<boolean[]>();
+  const [sharedSecret, setSharedSecret] = useState("");
+  const [sharedSecretCopied, setSharedSecretCopied] = useState<boolean[]>();
   const [stealthPrivateKeyCopied, setStealthPrivateKeyCopied] = useState(false);
   const [indexToRemove, setIndexToRemove] = useState(-1);
   // avoiding Error: Hydration failed
@@ -44,7 +44,7 @@ const Your_StAdds: NextPage = () => {
   const [isBurnerWalletNew, setIsBurnerWalletNew] = useState(false); 
   const [errorCustom, setErrorCustom] = useState("");
   const [errorPK, setErrorPK] = useState("");
-  const [errorPD, setErrorPD] = useState("");
+  const [errorShS, setErrorShS] = useState("");
   const [errorPrK, setErrorPrK] = useState("");
   const networks = ["mainnet", "goerli", "sepolia", "matic", "matic-mumbai", "optimism", "optimism-goerli", "arbitrum", "arbitrum-goerli"];
   const baseUrls = new Map([
@@ -66,9 +66,9 @@ const Your_StAdds: NextPage = () => {
     args: [userAddress],
   });
 
-  const { data: PublishedData } = useScaffoldContractRead({
+  const { data: SharedSecrets } = useScaffoldContractRead({
     contractName: "StAdds",
-    functionName: "getPublishedData",
+    functionName: "getSharedSecrets",
     args: [signer],
   });
 
@@ -103,11 +103,11 @@ const Your_StAdds: NextPage = () => {
   });
 
   const { 
-    writeAsync: removePublishedData, 
-    isLoading: removePublishedDataLoading 
+    writeAsync: removeSharedSecret, 
+    isLoading: removeSharedSecretLoading 
   } = useScaffoldContractWrite({
     contractName: "StAdds",
-    functionName: "removePublishedData",
+    functionName: "removeSharedSecret",
     args: [BigInt(indexToRemove)],
   });
 
@@ -116,9 +116,9 @@ const Your_StAdds: NextPage = () => {
     return PK.slice(0, 16) + "..." + PK.slice(-14);
   }
 
-  const getShort = (PD: string) => {
-    if (PD === "") return "";
-    return PD.slice(0, 10) + "..." + PD.slice(-11);
+  const getShort = (line: string) => {
+    if (line === "") return "";
+    return line.slice(0, 10) + "..." + line.slice(-11);
   }
 
   const cleanEverything = () => {
@@ -160,16 +160,16 @@ const Your_StAdds: NextPage = () => {
     return ethers.getAddress('0x' + ethers.keccak256('0x' + PK.slice(4)).slice(-40));
   }
 
-  const isPublishedDataEmpty = () => {
-    if (!PublishedData || PublishedData.length === 0) return true;
-    for (let i = 0; i < PublishedData.length; ++i) {
-      if (PublishedData[i].creator !== ethers.ZeroAddress) return false;
+  const isSharedSecretEmpty = () => {
+    if (!SharedSecrets || SharedSecrets.length === 0) return true;
+    for (let i = 0; i < SharedSecrets.length; ++i) {
+      if (SharedSecrets[i].creator !== ethers.ZeroAddress) return false;
     }
 
     return true;
   }
   
-  async function getPubKey() {
+  async function getPublicKey() {
     for (let i = 0 ; i < networks.length; ++i) {
       const network = networks[i];
       const baseUrl = baseUrls.get(network);
@@ -246,19 +246,19 @@ const Your_StAdds: NextPage = () => {
     const modulo = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
   
     // Remove "0x" prefix for elliptic library  
-    const publishedDataX = publishedData.slice(2,66);
-    const publishedDataY = publishedData.slice(66);
-    const publishedDataPoint = ec.curve.point(publishedDataX, publishedDataY);
+    let sharedSecretPointX = sharedSecret.slice(2,66);
+    let sharedSecretPointY = sharedSecret.slice(66);
+    let sharedSecretPoint = ec.curve.point(sharedSecretPointX, sharedSecretPointY);
   
-    const sharedSecretPoint = publishedDataPoint.mul(privateKey.slice(2));
-    const sharedSecretX = ethers.toBeHex(sharedSecretPoint.x.toString());
-    const sharedSecretY = ethers.toBeHex(sharedSecretPoint.y.toString());
-    const sharedSecretToNumber = ethers.solidityPackedKeccak256(
+    sharedSecretPoint = sharedSecretPoint.mul(privateKey.slice(2));
+    sharedSecretPointX = ethers.toBeHex(sharedSecretPoint.x.toString());
+    sharedSecretPointY = ethers.toBeHex(sharedSecretPoint.y.toString());
+    const sharedSecretPointToNumber = ethers.solidityPackedKeccak256(
       ['uint256', 'uint256'],
-      [ sharedSecretX, sharedSecretY ]
+      [ sharedSecretPointX, sharedSecretPointY ]
     );
   
-    const sharedSecretBigInt = BigInt(sharedSecretToNumber);
+    const sharedSecretBigInt = BigInt(sharedSecretPointToNumber);
     const privateKeyBigInt = BigInt(privateKey);
     let stealthPrivateKeyNew = (privateKeyBigInt + sharedSecretBigInt) % modulo; // can overflow
     const stealthPrivateKeyHex = ethers.toBeHex(stealthPrivateKeyNew);
@@ -289,7 +289,7 @@ const Your_StAdds: NextPage = () => {
       setGettingPublicKey(false);
       return;
     } else {
-      getPubKey();
+      getPublicKey();
     }
   }, [userAddress, PublicKey]);
 
@@ -326,56 +326,56 @@ const Your_StAdds: NextPage = () => {
   }, [signer]);
 
   useEffect(() => {
-    if (!PublishedData) return;
-    if (PublishedData.length === 0) return;
+    if (!SharedSecrets) return;
+    if (SharedSecrets.length === 0) return;
     let temp = [];
-    for (let i = 0; i < PublishedData.length; ++i) {
+    for (let i = 0; i < SharedSecrets.length; ++i) {
       temp.push(false);
     }
-    setPublishedDataCopied(temp);
-  }, [PublishedData]);
+    setSharedSecretCopied(temp);
+  }, [SharedSecrets]);
 
   useEffect(() => {
-    setErrorPD("");
-    if (publishedData === "" || !PublishedData) return;
+    setErrorShS("");
+    if (sharedSecret === "" || !SharedSecrets) return;
     if (
-      !(Boolean(publishedData.match(/^0x[a-f0-9]+$/g)) ||
-        Boolean(publishedData.match(/^[a-f0-9]+$/g)) ||
-        Boolean(publishedData.match(/^[0-9]+$/g)))
+      !(Boolean(sharedSecret.match(/^0x[a-f0-9]+$/g)) ||
+        Boolean(sharedSecret.match(/^[a-f0-9]+$/g)) ||
+        Boolean(sharedSecret.match(/^[0-9]+$/g)))
     ) {
-      setErrorPD("Something wrong with the Published Data!");
+      setErrorShS("Something wrong with the Shared Secret!");
       return;
     }
-    if (Number(publishedData) < 1) {
-      setErrorPD("Something wrong with the Published Data!");
+    if (Number(sharedSecret) < 1) {
+      setErrorShS("Something wrong with the Shared Secret!");
       return;
     }
-    if (Number(publishedData) <= PublishedData?.length) {
-      if (PublishedData[Number(publishedData)-1].creator === ethers.ZeroAddress) {
-        setErrorPD("Something wrong with the Published Data!");
+    if (Number(sharedSecret) <= SharedSecrets?.length) {
+      if (SharedSecrets[Number(sharedSecret)-1].creator === ethers.ZeroAddress) {
+        setErrorShS("Something wrong with the Shared Secret!");
         return;
       }
-      const temp = PublishedData[Number(publishedData)-1].x + PublishedData[Number(publishedData)-1].y.slice(2);
-      setPublishedData(temp);
+      const temp = SharedSecrets[Number(sharedSecret)-1].x + SharedSecrets[Number(sharedSecret)-1].y.slice(2);
+      setSharedSecret(temp);
     } else {
-      if (publishedData.length === 130 && publishedData.slice(0,2) === "0x") {
+      if (sharedSecret.length === 130 && sharedSecret.slice(0,2) === "0x") {
         return;
-      } else if (publishedData.length === 128 && publishedData.slice(0,2) !== "0x") {
-        setPublishedData('0x' + publishedData);
+      } else if (sharedSecret.length === 128 && sharedSecret.slice(0,2) !== "0x") {
+        setSharedSecret('0x' + sharedSecret);
       } else {
-        setErrorPD("Something wrong with the Published Data!");
+        setErrorShS("Something wrong with the Shared Secret!");
         return;
       }
     }
-  }, [publishedData]);
+  }, [sharedSecret]);
 
   useEffect(() => {
     setErrorPrK("");
     setIsBurnerWalletNew(false);
     if (userPrivateKey === "") return;
     if (
-      !(Boolean(publishedData.match(/^0x[a-f0-9]+$/g)) ||
-        Boolean(publishedData.match(/^[a-f0-9]+$/g)))
+      !(Boolean(sharedSecret.match(/^0x[a-f0-9]+$/g)) ||
+        Boolean(sharedSecret.match(/^[a-f0-9]+$/g)))
     ) {
       setErrorPrK("Not a private key!");
       return;
@@ -402,10 +402,10 @@ const Your_StAdds: NextPage = () => {
     } else {
       setErrorPrK("Not a private key!");
     }
-  }, [userPrivateKey, publishedData]);
+  }, [userPrivateKey, sharedSecret]);
 
   useEffect(() => {
-  }, [addPublicKeyLoading, removePublicKeyLoading, addUserPublicKeyLoading, removePublishedDataLoading]);
+  }, [addPublicKeyLoading, removePublicKeyLoading, addUserPublicKeyLoading, removeSharedSecretLoading]);
 
   return (
     <>
@@ -686,31 +686,31 @@ const Your_StAdds: NextPage = () => {
         <div className="form-control mb-3">
           <label className="label">
             <span className="label-text font-bold">
-             Your Published Data
+             Your Shared Secret
             </span>
           </label>
           <InputBase 
-            placeholder={!isPublishedDataEmpty() ? `0x... or index` : `0x...`} 
-            value={publishedData} 
+            placeholder={!isSharedSecretEmpty() ? `0x... or index` : `0x...`} 
+            value={sharedSecret} 
             onChange={value => {
               if (value === "") {
-                setPublishedData("");
+                setSharedSecret("");
               } else {
-                setPublishedData(value);
+                setSharedSecret(value);
               }                  
             }}
           />
         </div>
 
-        {errorPD !== "" &&
+        {errorShS !== "" &&
         (
         <span className="ml-2 text-[0.95rem] text-red-500">
-          {errorPD}
+          {errorShS}
         </span>
         )}
 
-        {errorPD === "" &&
-         publishedData !== "" &&
+        {errorShS === "" &&
+         sharedSecret !== "" &&
         (
         <div className="form-control mb-3">
           <label className="label">
@@ -802,7 +802,6 @@ const Your_StAdds: NextPage = () => {
           </div>
           </div>
           </div>
-
           
           )}
 
@@ -814,8 +813,7 @@ const Your_StAdds: NextPage = () => {
             To get your Stealth Private Key we need your private key.
             If you don't trust this dApp you can:
           </span>
-          </label>
-          
+          </label>          
           
           <label className="label flex flex-col">
           <span className="label-text font-bold">
@@ -841,25 +839,25 @@ const Your_StAdds: NextPage = () => {
       </div>
       </form>
       
-      {PublishedData &&
-       PublishedData.length > 0 &&
-       !isPublishedDataEmpty() &&
+      {SharedSecrets &&
+       SharedSecrets.length > 0 &&
+       !isSharedSecretEmpty() &&
       (        
       <form className={"w-[450px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5 mt-10"}>
       <div className="flex-column">       
       <div className="mt-2 px-4">
         <span className="text-2xl">
-          All your Published Data
+          All your Shared Secrets
         </span>
       </div>
 
-      {PublishedData.slice().reverse().map((arr: any, index: any) => (
+      {SharedSecrets.slice().reverse().map((arr: any, index: any) => (
       <div>
         {arr.creator !== ethers.ZeroAddress &&
         (
         <div className="form-control mb-3 mt-3">
           <div className="flex">
-            {PublishedData.length-index}.{"  "} From 
+            {SharedSecrets.length-index}.{"  "} From 
             <div className="mx-2">
               <Address address={arr.creator}/>
             </div>            
@@ -868,21 +866,21 @@ const Your_StAdds: NextPage = () => {
           
           <button
             type="button"
-            onClick={async () => {await removePublishedData();}}
+            onClick={async () => {await removeSharedSecret();}}
             onMouseEnter={() => {
-              setIndexToRemove(PublishedData.length-index-1);
+              setIndexToRemove(SharedSecrets.length-index-1);
             }}
           >
             <TrashIcon className="h-4"/>
           </button>
 
           <div className="mx-2">
-          Published Data:           
+          Shared Secret:           
           </div>
 
           {getShort(arr.x + arr.y.slice(2))}
 
-          {publishedDataCopied?.[index] ? (
+          {sharedSecretCopied?.[index] ? (
             <CheckCircleIcon
               className="ml-1.5 text-xl font-normal text-orange-600 h-5 w-5 cursor-pointer"
               aria-hidden="true"
@@ -891,9 +889,9 @@ const Your_StAdds: NextPage = () => {
             <CopyToClipboard
               text={arr.x + arr.y.slice(2)}
               onCopy={() => {
-                setPublishedDataCopied(prevState => prevState?.map((item, idx) => idx === index ? true : false));
+                setSharedSecretCopied(prevState => prevState?.map((item, idx) => idx === index ? true : false));
               setTimeout(() => {
-                setPublishedDataCopied(prevState => prevState?.map(() => false));
+                setSharedSecretCopied(prevState => prevState?.map(() => false));
               }, 800);
               }}
             >
