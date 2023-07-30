@@ -5,7 +5,7 @@ const contracts = {
       name: "polygon",
       contracts: {
         StAdds: {
-          address: "0xf5F3C8CB83af69B76d85162D5EdC5705677F7647",
+          address: "0x9F3A3E1db87524D75f2A4b6d26c42b39043d4aB5",
           abi: [
             {
               inputs: [],
@@ -39,12 +39,12 @@ const contracts = {
             },
             {
               inputs: [],
-              name: "PublishedDataCooldown",
+              name: "SharedSecretCooldown",
               type: "error",
             },
             {
               inputs: [],
-              name: "PublishedDataExists",
+              name: "SharedSecretExists",
               type: "error",
             },
             {
@@ -133,17 +133,17 @@ const contracts = {
                 {
                   indexed: false,
                   internalType: "bytes32",
-                  name: "PDx",
+                  name: "sharedSecretX",
                   type: "bytes32",
                 },
                 {
                   indexed: false,
                   internalType: "bytes32",
-                  name: "PDy",
+                  name: "sharedSecretY",
                   type: "bytes32",
                 },
               ],
-              name: "NewPublishedData",
+              name: "NewSharedSecret",
               type: "event",
             },
             {
@@ -188,7 +188,7 @@ const contracts = {
                   type: "uint256",
                 },
               ],
-              name: "PublishedDataRemoved",
+              name: "SharedSecretRemoved",
               type: "event",
             },
             {
@@ -225,16 +225,16 @@ const contracts = {
                 },
                 {
                   internalType: "bytes32",
-                  name: "publishedDataX",
+                  name: "sharedSecretX",
                   type: "bytes32",
                 },
                 {
                   internalType: "bytes32",
-                  name: "publishedDataY",
+                  name: "sharedSecretY",
                   type: "bytes32",
                 },
               ],
-              name: "addPublishedData",
+              name: "addSharedSecret",
               outputs: [],
               stateMutability: "nonpayable",
               type: "function",
@@ -291,7 +291,7 @@ const contracts = {
                   type: "address",
                 },
               ],
-              name: "getPublishedData",
+              name: "getSharedSecrets",
               outputs: [
                 {
                   components: [
@@ -311,7 +311,7 @@ const contracts = {
                       type: "address",
                     },
                   ],
-                  internalType: "struct StAdds.PublishedData[]",
+                  internalType: "struct StAdds.SharedSecret[]",
                   name: "",
                   type: "tuple[]",
                 },
@@ -341,12 +341,12 @@ const contracts = {
                 },
                 {
                   internalType: "bytes32",
-                  name: "publishedDataX",
+                  name: "sharedSecretX",
                   type: "bytes32",
                 },
                 {
                   internalType: "bytes32",
-                  name: "publishedDataY",
+                  name: "sharedSecretY",
                   type: "bytes32",
                 },
               ],
@@ -380,12 +380,12 @@ const contracts = {
                 },
                 {
                   internalType: "bytes32",
-                  name: "publishedDataX",
+                  name: "sharedSecretX",
                   type: "bytes32",
                 },
                 {
                   internalType: "bytes32",
-                  name: "publishedDataY",
+                  name: "sharedSecretY",
                   type: "bytes32",
                 },
               ],
@@ -401,12 +401,12 @@ const contracts = {
                 },
                 {
                   internalType: "bytes32",
-                  name: "publishedDataX",
+                  name: "sharedSecretX",
                   type: "bytes32",
                 },
                 {
                   internalType: "bytes32",
-                  name: "publishedDataY",
+                  name: "sharedSecretY",
                   type: "bytes32",
                 },
               ],
@@ -494,7 +494,7 @@ const contracts = {
                   type: "uint256",
                 },
               ],
-              name: "removePublishedData",
+              name: "removeSharedSecret",
               outputs: [],
               stateMutability: "nonpayable",
               type: "function",
