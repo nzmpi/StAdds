@@ -414,12 +414,12 @@ const Your_StAdds: NextPage = () => {
         description="Get your StAdds here!"
       />
 
-      <div className="flex sm:flex-row flex-col">
+      <div className="grid lg:grid-cols-2">
       {isConnected_ &&
       (
       <div className="flex items-center flex-col flex-grow pt-8">
-      <div className={"mx-auto mt-7"}>
-        <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
+      <div className="mx-auto mt-7">
+        <form className="w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5">
         <div className="flex-column">
 
         {gettingPublicKey && (
@@ -673,7 +673,7 @@ const Your_StAdds: NextPage = () => {
       </div>
       )}
 
-      <div className="flex items-center flex-col flex-grow pt-8">
+      <div className="flex items-center flex-col flex-grow pt-8 lg:mr-40">
       <div className={"mx-auto mt-7"}>
       <form className={"w-[400px] bg-base-100 rounded-3xl shadow-xl border-pink-700 border-2 p-2 px-7 py-5"}>
       <div className="flex-column">
