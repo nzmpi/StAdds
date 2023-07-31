@@ -414,7 +414,7 @@ const Your_StAdds: NextPage = () => {
         description="Get your StAdds here!"
       />
 
-      <div className="grid lg:grid-cols-2">
+      <div className="flex sm:flex-row flex-col">
       {isConnected_ &&
       (
       <div className="flex items-center flex-col flex-grow pt-8">
