@@ -6,7 +6,7 @@ import "./interfaces/IStAdds.sol";
 
 /**
  * @title StAdds
- * Contract that creats a Stealth Address and keeps track of shared secrets
+ * Contract that creates a Stealth Address and keeps track of shared secrets
  * @author https://github.com/nzmpi
  */
 contract StAdds is IStAdds {
